@@ -4,9 +4,74 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>ru.himukai</groupId>
-    <artifactId>MultiverseCards</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <groupId>ru.multiversecards</groupId>
+    <artifactId>multiverse-cards</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <name>Multiverse Cards</name>
 
+    <properties>
+        <!-- Версия Java: проверьте командой `java -version`, у вас должна быть не ниже -->
+        <java.version>21</java.version>
+        <maven.compiler.release>${java.version}</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
+        <!-- Все модули telegrambots должны иметь ОДИНАКОВУЮ версию -->
+        <telegrambots.version>9.5.0</telegrambots.version>
+        <junit.version>5.13.4</junit.version>
+        <slf4j.version>2.0.17</slf4j.version>
+
+        <!-- Точка входа для `mvn exec:java` -->
+        <app.main>ru.multiversecards.Main</app.main>
+    </properties>
+
+    <dependencies>
+        <!-- Telegram: получение сообщений (long polling) -->
+        <dependency>
+            <groupId>org.telegram</groupId>
+            <artifactId>telegrambots-longpolling</artifactId>
+            <version>10.3.0</version>
+        </dependency>
+        <!-- Telegram: отправка сообщений -->
+        <dependency>
+            <groupId>org.telegram</groupId>
+            <artifactId>telegrambots-client</artifactId>
+            <version>${telegrambots.version}</version>
+        </dependency>
+
+        <!-- Логирование (без него библиотека Telegram ругается в консоль) -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+
+        <!-- Тесты -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- Запуск тестов: mvn test -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.5.3</version>
+            </plugin>
+
+            <!-- Запуск бота: mvn compile exec:java -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.5.1</version>
+                <configuration>
+                    <mainClass>${app.main}</mainClass>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>
