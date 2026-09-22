@@ -1,9 +1,9 @@
-package ru.himukai.platform.telegram.commands;
+package ru.himukai.multiversecards.platform.telegram.commands;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import ru.himukai.platform.telegram.core.Command;
-import ru.himukai.platform.telegram.core.CommandRegistry;
+import ru.himukai.multiversecards.platform.telegram.core.Command;
+import ru.himukai.multiversecards.platform.telegram.core.CommandRegistry;
 
 import java.util.List;
 
