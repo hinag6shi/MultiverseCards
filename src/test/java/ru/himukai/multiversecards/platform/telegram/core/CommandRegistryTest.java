@@ -1,4 +1,4 @@
-package ru.himukai.platform.telegram.core;
+package ru.himukai.multiversecards.platform.telegram.core;
 
 import org.junit.jupiter.api.Test;
 
