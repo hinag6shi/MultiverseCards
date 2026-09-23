@@ -1,4 +1,4 @@
-package ru.himukai.multiversecards.platform.telegram.core;
+package ru.himukai.multiversecards.core;
 
 import java.util.Collection;
 import java.util.Collections;

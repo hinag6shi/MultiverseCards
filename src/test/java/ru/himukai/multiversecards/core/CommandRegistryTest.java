@@ -1,8 +1,6 @@
-package ru.himukai.multiversecards.platform.telegram.core;
+package ru.himukai.multiversecards.core;
 
 import org.junit.jupiter.api.Test;
-
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -31,7 +29,7 @@ class CommandRegistryTest {
         }
 
         @Override
-        public String execute(List<String> args) {
+        public String execute(CommandContext ctx) {
             return "";
         }
     }
