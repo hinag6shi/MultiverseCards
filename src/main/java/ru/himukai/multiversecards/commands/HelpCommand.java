@@ -1,9 +1,9 @@
-package ru.himukai.multiversecards.platform.telegram.commands;
+package ru.himukai.multiversecards.commands;
 
-import ru.himukai.multiversecards.platform.telegram.core.Command;
-import ru.himukai.multiversecards.platform.telegram.core.CommandRegistry;
-
-import java.util.List;
+import ru.himukai.multiversecards.core.Command;
+import ru.himukai.multiversecards.core.CommandContext;
+import ru.himukai.multiversecards.core.CommandRegistry;
+import ru.himukai.multiversecards.core.Response;
 
 public final class HelpCommand implements Command {
 
@@ -29,14 +29,14 @@ public final class HelpCommand implements Command {
     }
 
     @Override
-    public String execute(List<String> args) {
-        if (args.isEmpty()) {
-            return allCommands();
+    public Response execute(CommandContext ctx) {
+        if (ctx.args().isEmpty()) {
+            return Response.text(allCommands());
         }
-        String requested = args.getFirst();
+        String requested = ctx.args().getFirst();
         return registry.find(requested)
-                .map(HelpCommand::details)
-                .orElse("Команда «" + requested + "» не найдена. Список команд: /help");
+                .map(command -> Response.text(details(command)))
+                .orElse(Response.text("Команда «" + requested + "» не найдена. Список команд: /help"));
     }
 
     private String allCommands() {

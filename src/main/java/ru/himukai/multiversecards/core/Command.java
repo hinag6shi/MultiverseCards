@@ -1,6 +1,4 @@
-package ru.himukai.multiversecards.platform.telegram.core;
-
-import java.util.List;
+package ru.himukai.multiversecards.core;
 
 public interface Command {
     String name();
@@ -11,5 +9,5 @@ public interface Command {
         return "/" + name();
     }
 
-    String execute(List<String> args);
+    Response execute(CommandContext ctx);
 }

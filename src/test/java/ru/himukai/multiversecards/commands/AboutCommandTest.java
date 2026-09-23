@@ -1,6 +1,7 @@
-package ru.himukai.multiversecards.platform.telegram.commands;
+package ru.himukai.multiversecards.commands;
 
 import org.junit.jupiter.api.Test;
+import ru.himukai.multiversecards.core.CommandContext;
 
 import java.util.List;
 
@@ -10,7 +11,8 @@ class AboutCommandTest {
 
     @Test
     void mentionsGameName() {
-        String result = new AboutCommand().execute(List.of());
+        CommandContext ctx = new CommandContext("test", List.of());
+        String result = new AboutCommand().execute(ctx);
 
         assertTrue(result.contains("Multiverse Cards"));
     }
