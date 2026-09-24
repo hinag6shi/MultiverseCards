@@ -5,11 +5,11 @@ import org.junit.jupiter.api.Test;
 import ru.himukai.multiversecards.core.Command;
 import ru.himukai.multiversecards.core.CommandContext;
 import ru.himukai.multiversecards.core.CommandRegistry;
+import ru.himukai.multiversecards.core.Response;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 class HelpCommandTest {
 
@@ -25,8 +25,7 @@ class HelpCommandTest {
 
     @Test
     void withoutArgsListsAllCommands() {
-        CommandContext ctx = new CommandContext("test", List.of());
-        String result = help.execute(ctx);
+        String result = text(help.execute(ctx()));
 
         assertTrue(result.contains("/help"));
         assertTrue(result.contains("/ping — проверка связи"));
@@ -36,37 +35,40 @@ class HelpCommandTest {
     void newlyRegisteredCommandAppearsAutomatically() {
         registry.register(new StubCommand("later", "добавлена позже"));
 
-        CommandContext ctx = new CommandContext("test", List.of());
-        assertTrue(help.execute(ctx).contains("/later — добавлена позже"));
+        assertTrue(text(help.execute(ctx())).contains("/later — добавлена позже"));
     }
 
     @Test
     void withArgShowsDetailsOfThatCommand() {
-        CommandContext ctx = new CommandContext("test", List.of("ping"));
-        String result = help.execute(ctx);
+        String result = text(help.execute(ctx("ping")));
 
         assertEquals("/ping\nпроверка связи", result);
     }
 
     @Test
     void argWithSlashAndDifferentCaseIsAccepted() {
-        CommandContext ctx1 = new CommandContext("test", List.of("ping"));
-        CommandContext ctx2 = new CommandContext("test", List.of("/PING"));
-        assertEquals(help.execute(ctx1), help.execute(ctx2));
+        assertEquals(text(help.execute(ctx("ping"))), text(help.execute(ctx("/PING"))));
     }
 
     @Test
     void unknownCommandGivesHint() {
-        CommandContext ctx = new CommandContext("test", List.of("nope"));
-        String result = help.execute(ctx);
+        String result = text(help.execute(ctx("nope")));
 
         assertTrue(result.contains("не найдена"));
     }
 
+    private static CommandContext ctx(String... args) {
+        return new CommandContext("u1", List.of(args));
+    }
+
+    private static String text(Response response) {
+        return ((Response.Text) response).text();
+    }
+
     private record StubCommand(String name, String description) implements Command {
         @Override
-        public String execute(CommandContext ctx) {
-            return "";
+        public Response execute(CommandContext ctx) {
+            return Response.text("");
         }
     }
 }

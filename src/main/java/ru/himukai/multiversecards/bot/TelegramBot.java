@@ -13,18 +13,10 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardRow;
 import org.telegram.telegrambots.meta.generics.TelegramClient;
-import ru.himukai.multiversecards.core.Button;
-import ru.himukai.multiversecards.core.CommandDispatcher;
-import ru.himukai.multiversecards.core.Response;
+import ru.himukai.multiversecards.core.*;
 
 import java.util.List;
 
-/**
- * Единственный класс, который знает про Telegram: принимает Update,
- * достаёт из него текст (обычного сообщения или нажатой кнопки),
- * отдаёт его в CommandDispatcher и отправляет обратно ответ,
- * при необходимости с inline-клавиатурой.
- */
 public final class TelegramBot implements LongPollingSingleThreadUpdateConsumer {
 
     private static final Logger log = LoggerFactory.getLogger(TelegramBot.class);
@@ -40,8 +32,6 @@ public final class TelegramBot implements LongPollingSingleThreadUpdateConsumer 
      */
     public TelegramBot(String botToken, CommandDispatcher dispatcher, OkHttpClient httpClient) {
         this.dispatcher = dispatcher;
-        // ВНИМАНИЕ: сигнатура конструктора OkHttpTelegramClient(httpClient, token)
-        // не проверена компиляцией — сверьте с вашей версией telegrambots-client.
         this.client = new OkHttpTelegramClient(httpClient, botToken);
     }
 
@@ -59,10 +49,8 @@ public final class TelegramBot implements LongPollingSingleThreadUpdateConsumer 
 
     private void handleButtonClick(CallbackQuery callbackQuery) {
         String chatId = callbackQuery.getMessage().getChatId().toString();
-        // callbackData — это commandText из Button, обрабатывается как обычный текст
         String callbackData = callbackQuery.getData();
 
-        // Убираем "часики" на кнопке в интерфейсе пользователя
         answerCallback(callbackQuery.getId());
 
         handle(chatId, callbackData);
@@ -88,8 +76,6 @@ public final class TelegramBot implements LongPollingSingleThreadUpdateConsumer 
         if (buttons.isEmpty()) {
             return null; // без клавиатуры
         }
-        // Простой вариант: одна кнопка в ряд. Чтобы сделать сетку,
-        // сгруппируйте несколько Button в один InlineKeyboardRow.
         List<InlineKeyboardRow> rows = buttons.stream()
                 .map(button -> new InlineKeyboardRow(
                         InlineKeyboardButton.builder()

@@ -2,6 +2,7 @@ package ru.himukai.multiversecards.commands;
 
 import org.junit.jupiter.api.Test;
 import ru.himukai.multiversecards.core.CommandContext;
+import ru.himukai.multiversecards.core.Response;
 
 import java.util.List;
 
@@ -11,8 +12,8 @@ class AboutCommandTest {
 
     @Test
     void mentionsGameName() {
-        CommandContext ctx = new CommandContext("test", List.of());
-        String result = new AboutCommand().execute(ctx);
+        String result = ((Response.Text) new AboutCommand()
+                .execute(new CommandContext("u1", List.of()))).text();
 
         assertTrue(result.contains("Multiverse Cards"));
     }

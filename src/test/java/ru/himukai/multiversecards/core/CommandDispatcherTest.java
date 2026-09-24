@@ -3,8 +3,7 @@ package ru.himukai.multiversecards.core;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 class CommandDispatcherTest {
 
@@ -18,38 +17,42 @@ class CommandDispatcherTest {
     }
 
     @Test
-    void routesToMatchingCommandWithArgs() {
-        assertEquals("args: [a, b]", dispatcher.handle("test", "/echo a b"));
+    void routesToMatchingCommandWithArgsAndUserId() {
+        assertEquals("user=u1 args=[a, b]", text(dispatcher.handle("u1", "/echo a b")));
     }
 
     @Test
     void routesWithoutArgs() {
-        assertEquals("args: []", dispatcher.handle("test", "/echo"));
+        assertEquals("user=u1 args=[]", text(dispatcher.handle("u1", "/echo")));
     }
 
     @Test
     void stripsBotNameAfterAtSign() {
-        assertEquals("args: []", dispatcher.handle("test", "/echo@MyCoolBot"));
+        assertEquals("user=u1 args=[]", text(dispatcher.handle("u1", "/echo@MyCoolBot")));
     }
 
     @Test
     void isCaseInsensitive() {
-        assertEquals("args: []", dispatcher.handle("test", "/ECHO"));
+        assertEquals("user=u1 args=[]", text(dispatcher.handle("u1", "/ECHO")));
     }
 
     @Test
     void unknownCommandGivesHint() {
-        assertTrue(dispatcher.handle("test", "/nope").contains("не найдена"));
+        assertTrue(text(dispatcher.handle("u1", "/nope")).contains("не найдена"));
     }
 
     @Test
     void textWithoutSlashIsRejected() {
-        assertTrue(dispatcher.handle("test", "привет").contains("слэша"));
+        assertTrue(text(dispatcher.handle("u1", "привет")).contains("слэша"));
     }
 
     @Test
     void blankTextIsRejected() {
-        assertTrue(dispatcher.handle("test", "   ").contains("Список команд"));
+        assertTrue(text(dispatcher.handle("u1", "   ")).contains("Список команд"));
+    }
+
+    private static String text(Response response) {
+        return ((Response.Text) response).text();
     }
 
     private record EchoCommand() implements Command {
@@ -60,12 +63,12 @@ class CommandDispatcherTest {
 
         @Override
         public String description() {
-            return "повторяет аргументы";
+            return "повторяет userId и аргументы";
         }
 
         @Override
-        public String execute(CommandContext ctx) {
-            return "args: " + ctx.args();
+        public Response execute(CommandContext ctx) {
+            return Response.text("user=" + ctx.userId() + " args=" + ctx.args());
         }
     }
 }

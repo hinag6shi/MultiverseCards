@@ -2,8 +2,7 @@ package ru.himukai.multiversecards.core;
 
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 class CommandRegistryTest {
 
@@ -29,8 +28,8 @@ class CommandRegistryTest {
         }
 
         @Override
-        public String execute(CommandContext ctx) {
-            return "";
+        public Response execute(CommandContext ctx) {
+            return Response.text("");
         }
     }
 }

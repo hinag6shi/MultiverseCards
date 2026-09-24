@@ -60,7 +60,6 @@ public final class Main {
         try (TelegramBotsLongPollingApplication application =
                      new TelegramBotsLongPollingApplication(ObjectMapper::new, () -> httpClient)) {
             application.registerBot(botToken, bot);
-            System.out.println("Бот запущен. Нажмите Ctrl+C для остановки.");
             Thread.currentThread().join();
         }
     }
