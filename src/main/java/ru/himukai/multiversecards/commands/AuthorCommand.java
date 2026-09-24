@@ -19,7 +19,7 @@ public final class AuthorCommand implements Command {
     @Override
     public Response execute(CommandContext ctx) {
         return Response.text("""
-                Authors:
+                Авторы бота:
                 — @hinag6shi
                 — @0leacs
                 """);
