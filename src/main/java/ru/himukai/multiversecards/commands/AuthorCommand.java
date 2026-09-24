@@ -13,13 +13,13 @@ public final class AuthorCommand implements Command {
 
     @Override
     public String description() {
-        return "информация об авторах бота";
+        return "Информация об авторах бота";
     }
 
     @Override
     public Response execute(CommandContext ctx) {
         return Response.text("""
-                Authors:
+                Авторы бота:
                 — @hinag6shi
                 — @0leacs
                 """);
