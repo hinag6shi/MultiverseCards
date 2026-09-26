@@ -9,7 +9,8 @@ import ru.himukai.multiversecards.core.Response;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class HelpCommandTest {
 

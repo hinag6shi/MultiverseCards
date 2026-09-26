@@ -21,7 +21,7 @@ public final class AuthorCommand implements Command {
         return Response.text("""
                 Авторы бота:
                 — @hinag6shi
-                — @0leacs
+                — @oleacs
                 """);
     }
 }
