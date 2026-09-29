@@ -1,11 +1,22 @@
 package ru.himukai.multiversecards.commands;
 
+import ru.himukai.multiversecards.core.Button;
 import ru.himukai.multiversecards.core.Command;
 import ru.himukai.multiversecards.core.CommandContext;
 import ru.himukai.multiversecards.core.CommandRegistry;
+import ru.himukai.multiversecards.core.Keyboard;
 import ru.himukai.multiversecards.core.Response;
 
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * /help — список команд с кнопками, /help &lt;команда&gt; — справка по одной команде.
+ * Кнопки строятся из реестра, поэтому новые команды появляются в списке сами.
+ */
 public final class HelpCommand implements Command {
+
+    private static final int BUTTONS_PER_ROW = 2;
 
     private final CommandRegistry registry;
 
@@ -31,25 +42,27 @@ public final class HelpCommand implements Command {
     @Override
     public Response execute(CommandContext ctx) {
         if (ctx.args().isEmpty()) {
-            return Response.text(allCommands());
+            return overview();
         }
         String requested = ctx.args().getFirst();
         return registry.find(requested)
-                .map(command -> Response.text(details(command)))
-                .orElse(Response.text("Команда «" + requested + "» не найдена. Список команд: /help"));
+                .map(this::details)
+                .orElseGet(() -> Response.text("Команда «" + requested + "» не найдена. Список команд: /" + name()));
     }
 
-    private String allCommands() {
-        StringBuilder sb = new StringBuilder("Доступные команды:\n");
+    private Response overview() {
+        StringBuilder text = new StringBuilder("Доступные команды:\n");
+        List<Button> buttons = new ArrayList<>();
         for (Command command : registry.all()) {
-            sb.append('/').append(command.name())
-                    .append(" — ").append(command.description()).append('\n');
+            text.append('/').append(command.name()).append(" — ").append(command.description()).append('\n');
+            buttons.add(Button.command("/" + command.name(), name(), command.name()));
         }
-        sb.append("\nПодробнее: /help <команда>");
-        return sb.toString();
+        text.append("\nПодробнее: /help <команда>");
+        return Response.update(text.toString(), Keyboard.grid(buttons, BUTTONS_PER_ROW));
     }
 
-    private static String details(Command command) {
-        return command.usage() + "\n" + command.description();
+    private Response details(Command command) {
+        Button back = Button.command("← Все команды", name());
+        return Response.update(command.usage() + "\n" + command.description(), Keyboard.grid(List.of(back), 1));
     }
 }
