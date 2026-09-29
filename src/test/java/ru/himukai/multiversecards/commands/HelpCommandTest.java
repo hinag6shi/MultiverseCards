@@ -1,8 +1,7 @@
 package ru.himukai.multiversecards.commands;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import ru.himukai.multiversecards.core.Command;
+import ru.himukai.multiversecards.core.Button;
 import ru.himukai.multiversecards.core.CommandContext;
 import ru.himukai.multiversecards.core.CommandRegistry;
 import ru.himukai.multiversecards.core.Response;
@@ -14,62 +13,78 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class HelpCommandTest {
 
-    private CommandRegistry registry;
-    private HelpCommand help;
+    private final CommandRegistry registry = new CommandRegistry();
+    private final HelpCommand help = new HelpCommand(registry);
 
-    @BeforeEach
-    void setUp() {
-        registry = new CommandRegistry();
-        help = new HelpCommand(registry);
-        registry.register(help, new StubCommand("ping", "проверка связи"));
+    HelpCommandTest() {
+        registry.register(help, new AuthorCommand(), new AboutCommand());
+    }
+
+    private Response run(String... args) {
+        return help.execute(new CommandContext("u", List.of(args)));
     }
 
     @Test
-    void withoutArgsListsAllCommands() {
-        String result = text(help.execute(ctx()));
+    void withoutArgsListsAllCommandsAlphabetically() {
+        String text = run().text();
 
-        assertTrue(result.contains("/help"));
-        assertTrue(result.contains("/ping — проверка связи"));
+        assertTrue(text.startsWith("Доступные команды:"));
+        int about = text.indexOf("/about");
+        int author = text.indexOf("/author");
+        int helpPos = text.indexOf("/help —");
+        assertTrue(about >= 0 && about < author && author < helpPos);
+        assertTrue(text.contains("Информация об авторах бота"));
     }
 
     @Test
-    void newlyRegisteredCommandAppearsAutomatically() {
-        registry.register(new StubCommand("later", "добавлена позже"));
+    void overviewHasOneButtonPerCommandLeadingToDetails() {
+        Response response = run();
 
-        assertTrue(text(help.execute(ctx())).contains("/later — добавлена позже"));
+        List<String> commandTexts = response.keyboard().rows().stream()
+                .flatMap(List::stream).map(Button::commandText).toList();
+
+        assertEquals(List.of("/help about", "/help author", "/help help"), commandTexts);
+        assertEquals(Response.RenderMode.UPDATE, response.renderMode());
     }
 
     @Test
-    void withArgShowsDetailsOfThatCommand() {
-        String result = text(help.execute(ctx("ping")));
+    void withArgShowsUsageAndDescription() {
+        Response response = run("author");
 
-        assertEquals("/ping\nпроверка связи", result);
+        assertEquals("/author\nИнформация об авторах бота", response.text());
     }
 
     @Test
     void argWithSlashAndDifferentCaseIsAccepted() {
-        assertEquals(text(help.execute(ctx("ping"))), text(help.execute(ctx("/PING"))));
+        assertEquals(run("author").text(), run("/AUTHOR").text());
     }
 
     @Test
-    void unknownCommandGivesHint() {
-        String result = text(help.execute(ctx("nope")));
-
-        assertTrue(result.contains("не найдена"));
+    void helpOnHelpUsesCustomUsage() {
+        assertTrue(run("help").text().startsWith("/help [команда]"));
     }
 
-    private static CommandContext ctx(String... args) {
-        return new CommandContext("u1", List.of(args));
+    @Test
+    void detailsHaveBackButtonToOverview() {
+        Response response = run("about");
+
+        assertEquals(1, response.keyboard().rows().size());
+        assertEquals("/help", response.keyboard().rows().getFirst().getFirst().commandText());
+        assertEquals(Response.RenderMode.UPDATE, response.renderMode());
     }
 
-    private static String text(Response response) {
-        return ((Response.Text) response).text();
+    @Test
+    void unknownCommandIsReportedAsNewMessage() {
+        Response response = run("nope");
+
+        assertTrue(response.text().contains("«nope»"));
+        assertTrue(response.text().contains("/help"));
+        assertEquals(Response.RenderMode.NEW, response.renderMode());
+        assertTrue(response.keyboard().isEmpty());
     }
 
-    private record StubCommand(String name, String description) implements Command {
-        @Override
-        public Response execute(CommandContext ctx) {
-            return Response.text("");
-        }
+    @Test
+    void extraArgsAreIgnored() {
+        assertEquals(run("author").text(), run("author", "лишнее").text());
     }
 }

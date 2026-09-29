@@ -13,7 +13,7 @@ public final class AboutCommand implements Command {
 
     @Override
     public String description() {
-        return "информация о назначении бота";
+        return "Информация о назначении бота";
     }
 
     @Override

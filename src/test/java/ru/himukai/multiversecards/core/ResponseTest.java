@@ -4,33 +4,46 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class ResponseTest {
 
-    @Test
-    void plainTextHasNoKeyboardAndIsNewMessage() {
-        Response.Text response = (Response.Text) Response.text("hello");
+    private static final Keyboard KEYBOARD =
+            Keyboard.grid(List.of(Button.command("Помощь", "help")), 1);
 
-        assertEquals("hello", response.text());
-        assertTrue(response.keyboard().isEmpty());
+    @Test
+    void textIsNewMessageWithoutKeyboard() {
+        Response response = Response.text("привет");
+
         assertEquals(Response.RenderMode.NEW, response.renderMode());
+        assertSame(Keyboard.NONE, response.keyboard());
     }
 
     @Test
-    void textWithKeyboardKeepsNewMode() {
-        Button.Keyboard keyboard = Button.Keyboard.grid(List.of(new Button("ok", "/ok")), 1);
+    void textWithKeyboardIsNewMessage() {
+        Response response = Response.text("привет", KEYBOARD);
 
-        Response.Text response = (Response.Text) Response.text("choose", keyboard);
-
-        assertEquals(keyboard, response.keyboard());
         assertEquals(Response.RenderMode.NEW, response.renderMode());
+        assertSame(KEYBOARD, response.keyboard());
     }
 
     @Test
-    void updateSetsRenderModeToUpdate() {
-        Response.Text response = (Response.Text) Response.update("step 2", Button.Keyboard.NONE);
+    void updateKeepsKeyboardAndMode() {
+        Response response = Response.update("привет", KEYBOARD);
 
         assertEquals(Response.RenderMode.UPDATE, response.renderMode());
+        assertSame(KEYBOARD, response.keyboard());
+    }
+
+    @Test
+    void nullKeyboardBecomesNone() {
+        assertSame(Keyboard.NONE, Response.text("x", null).keyboard());
+    }
+
+    @Test
+    void nullTextIsRejected() {
+        assertThrows(NullPointerException.class, () -> Response.text(null));
     }
 }

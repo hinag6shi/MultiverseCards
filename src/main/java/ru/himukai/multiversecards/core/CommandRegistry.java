@@ -3,9 +3,9 @@ package ru.himukai.multiversecards.core;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
-import java.util.Map;
 
 public final class CommandRegistry {
 
@@ -14,6 +14,9 @@ public final class CommandRegistry {
     public CommandRegistry register(Command... newCommands) {
         for (Command command : newCommands) {
             String key = normalize(command.name());
+            if (key.isEmpty()) {
+                throw new IllegalArgumentException("Имя команды не может быть пустым");
+            }
             if (commands.putIfAbsent(key, command) != null) {
                 throw new IllegalArgumentException("Команда уже зарегистрирована: " + key);
             }
@@ -25,6 +28,7 @@ public final class CommandRegistry {
         return Optional.ofNullable(commands.get(normalize(name)));
     }
 
+    /** Алфавитный порядок */
     public Collection<Command> all() {
         return Collections.unmodifiableCollection(commands.values());
     }

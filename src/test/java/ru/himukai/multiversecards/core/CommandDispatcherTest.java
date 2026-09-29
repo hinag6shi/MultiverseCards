@@ -1,74 +1,79 @@
 package ru.himukai.multiversecards.core;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class CommandDispatcherTest {
 
-    private CommandDispatcher dispatcher;
-
-    @BeforeEach
-    void setUp() {
-        CommandRegistry registry = new CommandRegistry();
-        registry.register(new EchoCommand());
-        dispatcher = new CommandDispatcher(registry);
-    }
+    private final StubCommand echo = new StubCommand("echo", ctx -> Response.text("echo:" + ctx.args()));
+    private final CommandDispatcher dispatcher =
+            new CommandDispatcher(new CommandRegistry().register(echo));
 
     @Test
-    void routesToMatchingCommandWithArgsAndUserId() {
-        assertEquals("user=u1 args=[a, b]", text(dispatcher.handle("u1", "/echo a b")));
-    }
-
-    @Test
-    void routesWithoutArgs() {
-        assertEquals("user=u1 args=[]", text(dispatcher.handle("u1", "/echo")));
-    }
-
-    @Test
-    void stripsBotNameAfterAtSign() {
-        assertEquals("user=u1 args=[]", text(dispatcher.handle("u1", "/echo@MyCoolBot")));
-    }
-
-    @Test
-    void isCaseInsensitive() {
-        assertEquals("user=u1 args=[]", text(dispatcher.handle("u1", "/ECHO")));
-    }
-
-    @Test
-    void unknownCommandGivesHint() {
-        assertTrue(text(dispatcher.handle("u1", "/nope")).contains("не найдена"));
+    void nullAndBlankTextGiveHint() {
+        assertTrue(dispatcher.handle("u", null).text().contains("/help"));
+        assertTrue(dispatcher.handle("u", "").text().contains("/help"));
+        assertTrue(dispatcher.handle("u", "   \n ").text().contains("/help"));
     }
 
     @Test
     void textWithoutSlashIsRejected() {
-        assertTrue(text(dispatcher.handle("u1", "привет")).contains("слэша"));
+        Response response = dispatcher.handle("u", "привет");
+
+        assertTrue(response.text().contains("слэша"));
+        assertNull(echo.lastContext());
     }
 
     @Test
-    void blankTextIsRejected() {
-        assertTrue(text(dispatcher.handle("u1", "   ")).contains("Список команд"));
+    void emptyCommandNameIsRejected() {
+        assertTrue(dispatcher.handle("u", "/").text().contains("Не указана команда"));
+        assertTrue(dispatcher.handle("u", "/@MyBot").text().contains("Не указана команда"));
     }
 
-    private static String text(Response response) {
-        return ((Response.Text) response).text();
+    @Test
+    void unknownCommandMentionsItsName() {
+        Response response = dispatcher.handle("u", "/nope arg");
+
+        assertTrue(response.text().contains("/nope"));
+        assertTrue(response.text().contains("не найдена"));
     }
 
-    private record EchoCommand() implements Command {
-        @Override
-        public String name() {
-            return "echo";
-        }
+    @Test
+    void knownCommandReceivesUserIdAndArgs() {
+        Response response = dispatcher.handle("tg:42", "/echo a b");
 
-        @Override
-        public String description() {
-            return "повторяет userId и аргументы";
-        }
+        assertEquals("echo:[a, b]", response.text());
+        assertEquals("tg:42", echo.lastContext().userId());
+        assertEquals(List.of("a", "b"), echo.lastContext().args());
+    }
 
-        @Override
-        public Response execute(CommandContext ctx) {
-            return Response.text("user=" + ctx.userId() + " args=" + ctx.args());
-        }
+    @Test
+    void commandWithoutArgsGetsEmptyList() {
+        dispatcher.handle("u", "/echo");
+
+        assertEquals(List.of(), echo.lastContext().args());
+    }
+
+    @Test
+    void botSuffixCaseAndExtraWhitespaceAreHandled() {
+        dispatcher.handle("u", "  /ECHO@MyBot   x \t y  ");
+
+        assertEquals(List.of("x", "y"), echo.lastContext().args());
+    }
+
+    @Test
+    void commandExceptionIsCaughtAndUserGetsFriendlyReply() {
+        StubCommand broken = new StubCommand("broken", ctx -> {
+            throw new IllegalStateException("boom");
+        });
+        CommandDispatcher safe = new CommandDispatcher(new CommandRegistry().register(broken));
+
+        Response response = safe.handle("u", "/broken");
+
+        assertTrue(response.text().contains("Не удалось выполнить команду"));
+        assertFalse(response.text().contains("boom"));
     }
 }

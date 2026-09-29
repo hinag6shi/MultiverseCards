@@ -1,30 +1,33 @@
-// core/Response.java
 package ru.himukai.multiversecards.core;
 
-import java.util.List;
+import java.util.Objects;
 
-public sealed interface Response {
+/**
+ * @param text       текст сообщения
+ * @param keyboard   кнопки под сообщением (может быть {@link Keyboard#NONE})
+ * @param renderMode {@link RenderMode#NEW} — отправить новое сообщение;
+ *                   {@link RenderMode#UPDATE} — заменить сообщение, с кнопки которого пришла команда
+ *                   (если команду набрали вручную, платформа отправит новое сообщение)
+ */
+public record Response(String text, Keyboard keyboard, RenderMode renderMode) {
 
-    Button.Keyboard keyboard();
-    RenderMode renderMode();
+    public enum RenderMode { NEW, UPDATE }
 
-    enum RenderMode { NEW, UPDATE }
-
-    record Text(String text, Button.Keyboard keyboard, RenderMode renderMode) implements Response {
-        public Text(String text) {
-            this(text, Button.Keyboard.NONE, RenderMode.NEW);
-        }
+    public Response {
+        Objects.requireNonNull(text, "text");
+        Objects.requireNonNull(renderMode, "renderMode");
+        keyboard = keyboard == null ? Keyboard.NONE : keyboard;
     }
 
-    static Response text(String text) {
-        return new Text(text);
+    public static Response text(String text) {
+        return new Response(text, Keyboard.NONE, RenderMode.NEW);
     }
 
-    static Response text(String text, Button.Keyboard keyboard) {
-        return new Text(text, keyboard, RenderMode.NEW);
+    public static Response text(String text, Keyboard keyboard) {
+        return new Response(text, keyboard, RenderMode.NEW);
     }
 
-    static Response update(String text, Button.Keyboard keyboard) {
-        return new Text(text, keyboard, RenderMode.UPDATE);
+    public static Response update(String text, Keyboard keyboard) {
+        return new Response(text, keyboard, RenderMode.UPDATE);
     }
 }
