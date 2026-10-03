@@ -11,6 +11,7 @@ import ru.himukai.multiversecards.bot.TelegramBot;
 import ru.himukai.multiversecards.commands.AboutCommand;
 import ru.himukai.multiversecards.commands.AuthorCommand;
 import ru.himukai.multiversecards.commands.HelpCommand;
+import ru.himukai.multiversecards.commands.StartCommand;
 import ru.himukai.multiversecards.core.CommandDispatcher;
 import ru.himukai.multiversecards.core.CommandRegistry;
 
@@ -51,7 +52,8 @@ public final class Main {
         return registry.register(
                 new HelpCommand(registry),
                 new AuthorCommand(),
-                new AboutCommand()
+                new AboutCommand(),
+                new StartCommand()
         );
     }
 
