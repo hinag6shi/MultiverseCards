@@ -2,6 +2,7 @@ package ru.himukai.multiversecards.domain.card;
 
 import java.util.Objects;
 
+/** Карточка из общего пула. У игрока есть только ссылка на неё (см. {@code OwnedCard}). */
 public record CardTemplate(
         TemplateId id,
         String name,
@@ -21,9 +22,5 @@ public record CardTemplate(
         if (universe == null || universe.isBlank()) {
             throw new IllegalArgumentException("universe не может быть пустым");
         }
-    }
-
-    public Card newCard() {
-        return new Card(CardId.random(), this);
     }
 }

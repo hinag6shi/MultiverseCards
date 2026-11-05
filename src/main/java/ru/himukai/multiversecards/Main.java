@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.telegram.telegrambots.longpolling.TelegramBotsLongPollingApplication;
 import org.telegram.telegrambots.longpolling.util.TelegramOkHttpClientFactory;
+import ru.himukai.multiversecards.bot.KeyedExecutor;
 import ru.himukai.multiversecards.bot.TelegramBot;
 import ru.himukai.multiversecards.commands.AboutCommand;
 import ru.himukai.multiversecards.commands.AuthorCommand;
@@ -14,6 +15,10 @@ import ru.himukai.multiversecards.commands.HelpCommand;
 import ru.himukai.multiversecards.commands.StartCommand;
 import ru.himukai.multiversecards.core.CommandDispatcher;
 import ru.himukai.multiversecards.core.CommandRegistry;
+import ru.himukai.multiversecards.infra.db.Database;
+import ru.himukai.multiversecards.infra.db.PostgresPlayerRepository;
+import ru.himukai.multiversecards.service.DefaultPlayerService;
+import ru.himukai.multiversecards.service.PlayerService;
 
 import java.net.InetSocketAddress;
 import java.net.Proxy;
@@ -22,6 +27,9 @@ import java.util.function.Supplier;
 public final class Main {
 
     private static final Logger log = LoggerFactory.getLogger(Main.class);
+
+    /** Сколько игроков обрабатывается одновременно. Пул БД (Database) должен быть не меньше. */
+    private static final int USER_LANES = 8;
 
     private Main() {
     }
@@ -36,24 +44,31 @@ public final class Main {
         }
 
         OkHttpClient httpClient = createHttpClient(env);
-        CommandDispatcher dispatcher = new CommandDispatcher(createRegistry());
-        TelegramBot bot = new TelegramBot(botToken, dispatcher, httpClient);
 
-        try (TelegramBotsLongPollingApplication application =
+        // Порядок закрытия обратный: сначала перестаём получать апдейты, затем доделываем
+        // принятые, и только потом закрываем БД.
+        try (Database database = Database.connect(env);
+             KeyedExecutor executor = new KeyedExecutor(USER_LANES);
+             TelegramBotsLongPollingApplication application =
                      new TelegramBotsLongPollingApplication(ObjectMapper::new, () -> httpClient)) {
+
+            PlayerService players = new DefaultPlayerService(new PostgresPlayerRepository(database.dataSource()));
+            CommandDispatcher dispatcher = new CommandDispatcher(createRegistry(players));
+            TelegramBot bot = new TelegramBot(botToken, dispatcher, httpClient, executor);
+
             application.registerBot(botToken, bot);
             log.info("Бот запущен");
             Thread.currentThread().join();
         }
     }
 
-    private static CommandRegistry createRegistry() {
+    private static CommandRegistry createRegistry(PlayerService players) {
         CommandRegistry registry = new CommandRegistry();
         return registry.register(
                 new HelpCommand(registry),
                 new AuthorCommand(),
                 new AboutCommand(),
-                new StartCommand()
+                new StartCommand(players)
         );
     }
 

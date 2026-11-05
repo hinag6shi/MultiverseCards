@@ -32,25 +32,45 @@ public final class TelegramBot implements LongPollingSingleThreadUpdateConsumer 
 
     private final CommandDispatcher dispatcher;
     private final TelegramClient client;
+    private final KeyedExecutor executor;
 
-    public TelegramBot(String botToken, CommandDispatcher dispatcher, OkHttpClient httpClient) {
+    public TelegramBot(String botToken, CommandDispatcher dispatcher, OkHttpClient httpClient,
+                       KeyedExecutor executor) {
         this.dispatcher = dispatcher;
         this.client = new OkHttpTelegramClient(httpClient, botToken);
+        this.executor = executor;
     }
 
+    /**
+     * Вызывается потоком long polling и только раскладывает апдейты по очередям игроков:
+     * тяжёлая работа (БД, запросы к Telegram) идёт уже в потоке игрока.
+     * Апдейты одного игрока обрабатываются строго по порядку, разных игроков — параллельно.
+     */
     @Override
     public void consume(Update update) {
         if (update.hasCallbackQuery()) {
             var query = update.getCallbackQuery();
-            answerCallback(query.getId());
             var message = query.getMessage();
-            if (query.getData() != null && message != null) {
-                reply(message.getChatId(), query.getFrom().getId(), query.getData(), message.getMessageId());
-            }
+            long userId = query.getFrom().getId();
+            String queryId = query.getId();
+            String data = query.getData();
+            Long chatId = message == null ? null : message.getChatId();
+            Integer messageId = message == null ? null : message.getMessageId();
+
+            executor.submit(userId, () -> {
+                answerCallback(queryId);
+                if (data != null && chatId != null) {
+                    reply(chatId, userId, data, messageId);
+                }
+            });
         } else if (update.hasMessage() && update.getMessage().hasText()) {
             var message = update.getMessage();
             if (message.getFrom() != null) {
-                reply(message.getChatId(), message.getFrom().getId(), message.getText(), null);
+                long userId = message.getFrom().getId();
+                long chatId = message.getChatId();
+                String text = message.getText();
+
+                executor.submit(userId, () -> reply(chatId, userId, text, null));
             }
         }
     }

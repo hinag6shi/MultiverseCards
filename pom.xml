@@ -17,6 +17,10 @@
         <junit.version>5.13.4</junit.version>
         <slf4j.version>2.0.19</slf4j.version>
 
+        <postgresql.version>42.7.7</postgresql.version>
+        <hikari.version>6.3.0</hikari.version>
+        <flyway.version>11.10.0</flyway.version>
+
         <app.main>ru.himukai.multiversecards.Main</app.main>
     </properties>
 
@@ -38,6 +42,28 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-simple</artifactId>
             <version>${slf4j.version}</version>
+        </dependency>
+
+        <!-- База данных: драйвер, пул соединений, миграции -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>${postgresql.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>${hikari.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+            <version>${flyway.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+            <version>${flyway.version}</version>
         </dependency>
 
         <!-- Тесты -->

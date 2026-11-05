@@ -3,20 +3,37 @@ package ru.himukai.multiversecards.commands;
 import org.junit.jupiter.api.Test;
 import ru.himukai.multiversecards.core.CommandContext;
 import ru.himukai.multiversecards.core.Response;
+import ru.himukai.multiversecards.domain.player.CardCollection;
+import ru.himukai.multiversecards.domain.player.Player;
+import ru.himukai.multiversecards.domain.player.PlayerId;
+import ru.himukai.multiversecards.service.PlayerService;
 
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class StartCommandTest {
 
-    private final StartCommand command = new StartCommand();
+    private PlayerId lastId;
+    private String lastName;
+
+    private final PlayerService players = (id, name) -> {
+        lastId = id;
+        lastName = name;
+        return new Player(id, name, 0, new CardCollection());
+    };
+
+    private final StartCommand command = new StartCommand(players);
 
     @Test
     void asksForNameWhenNoArgs() {
         Response response = command.execute(new CommandContext("tg:1", List.of()));
 
         assertTrue(response.text().contains("Как мне к тебе обращаться"));
+        assertNull(lastId);
     }
 
     @Test
@@ -31,5 +48,20 @@ class StartCommandTest {
         Response response = command.execute(new CommandContext("tg:1", List.of("вилка", "жопка")));
 
         assertTrue(response.text().contains("вилка жопка"));
+        assertEquals("вилка жопка", lastName);
+    }
+
+    @Test
+    void registersPlayerUnderIdFromUserId() {
+        command.execute(new CommandContext("tg:42", List.of("Имя")));
+
+        assertEquals(new PlayerId(42), lastId);
+        assertEquals("Имя", lastName);
+    }
+
+    @Test
+    void malformedUserIdIsRejected() {
+        assertThrows(IllegalArgumentException.class,
+                () -> command.execute(new CommandContext("tg:abc", List.of("Имя"))));
     }
 }
