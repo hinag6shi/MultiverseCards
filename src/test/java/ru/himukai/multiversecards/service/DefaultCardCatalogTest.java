@@ -1,4 +1,3 @@
-
 package ru.himukai.multiversecards.service;
 
 import org.junit.jupiter.api.Test;
@@ -18,7 +17,7 @@ class DefaultCardCatalogTest {
         return new CardTemplate(
                 new TemplateId(id),
                 "Имя " + id,
-                "Sunrio",
+                "Sanrio",
                 Rarity.COMMON,
                 new Stats(100, 20, 10),
                 starter
@@ -27,7 +26,7 @@ class DefaultCardCatalogTest {
 
     @Test
     void shouldReturnCardById() {
-        CardTemplate card = card("sunrio_one", false);
+        CardTemplate card = card("sanrio_one", false);
         DefaultCardCatalog catalog = new DefaultCardCatalog(List.of(card));
 
         assertEquals(card, catalog.find(card.id()).orElseThrow());
@@ -42,8 +41,8 @@ class DefaultCardCatalogTest {
 
     @Test
     void shouldReturnAllCardsInInsertionOrder() {
-        CardTemplate first = card("sunrio_one", false);
-        CardTemplate second = card("sunrio_two", true);
+        CardTemplate first = card("sanrio_one", false);
+        CardTemplate second = card("sanrio_two", true);
 
         DefaultCardCatalog catalog =
                 new DefaultCardCatalog(List.of(first, second));
@@ -53,9 +52,9 @@ class DefaultCardCatalogTest {
 
     @Test
     void shouldReturnOnlyStarterCards() {
-        CardTemplate first = card("sunrio_one", true);
-        CardTemplate second = card("sunrio_two", false);
-        CardTemplate third = card("sunrio_three", true);
+        CardTemplate first = card("sanrio_one", true);
+        CardTemplate second = card("sanrio_two", false);
+        CardTemplate third = card("sanrio_three", true);
 
         DefaultCardCatalog catalog =
                 new DefaultCardCatalog(List.of(first, second, third));
@@ -65,8 +64,8 @@ class DefaultCardCatalogTest {
 
     @Test
     void shouldRejectDuplicateIds() {
-        CardTemplate first = card("sunrio_one", false);
-        CardTemplate duplicate = card("sunrio_one", true);
+        CardTemplate first = card("sanrio_one", false);
+        CardTemplate duplicate = card("sanrio_one", true);
 
         assertThrows(
                 IllegalArgumentException.class,
@@ -77,11 +76,11 @@ class DefaultCardCatalogTest {
     @Test
     void shouldNotReflectChangesToSourceCollection() {
         List<CardTemplate> source = new ArrayList<>();
-        source.add(card("sunrio_one", false));
+        source.add(card("sanrio_one", false));
 
         DefaultCardCatalog catalog = new DefaultCardCatalog(source);
 
-        source.add(card("sunrio_two", false));
+        source.add(card("sanrio_two", false));
 
         assertEquals(1, catalog.all().size());
     }
@@ -89,7 +88,7 @@ class DefaultCardCatalogTest {
     @Test
     void shouldReturnImmutableLists() {
         DefaultCardCatalog catalog =
-                new DefaultCardCatalog(List.of(card("sunrio_one", true)));
+                new DefaultCardCatalog(List.of(card("sanrio_one", true)));
 
         assertThrows(
                 UnsupportedOperationException.class,
