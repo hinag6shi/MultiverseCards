@@ -57,6 +57,11 @@ public final class CardJsonLoader {
         if (cards.isEmpty()) {
             throw new IllegalStateException("В resources/cards не найдено карточек в JSON-файлах");
         }
+        for (CardTemplate card : cards) {
+            if (classLoader.getResource(card.imageResource()) == null) {
+                throw new IllegalStateException("Не найден файл изображения " + card.imageResource());
+            }
+        }
 
         return List.copyOf(cards);
     }
@@ -85,7 +90,7 @@ public final class CardJsonLoader {
             for (String name : names) {
                 JarEntry entry = jar.getJarEntry(name);
                 if (entry == null) {
-                        throw new IOException("Не найден ресурс " + name);
+                    throw new IOException("Не найден ресурс " + name);
                 }
                 try (InputStream input = jar.getInputStream(entry)) {
                     readFile(mapper, input, name, cards, ids);
@@ -148,4 +153,5 @@ public final class CardJsonLoader {
         }
         return value.asBoolean();
     }
+
 }

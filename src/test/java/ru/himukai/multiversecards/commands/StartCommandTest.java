@@ -9,6 +9,7 @@ import ru.himukai.multiversecards.domain.player.PlayerId;
 import ru.himukai.multiversecards.service.PlayerService;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -20,10 +21,18 @@ class StartCommandTest {
     private PlayerId lastId;
     private String lastName;
 
-    private final PlayerService players = (id, name) -> {
-        lastId = id;
-        lastName = name;
-        return new Player(id, name, 0, new CardCollection());
+    private final PlayerService players = new PlayerService() {
+        @Override
+        public Player start(PlayerId id, String name) {
+            lastId = id;
+            lastName = name;
+            return new Player(id, name, 0, new CardCollection());
+        }
+
+        @Override
+        public Optional<Player> find(PlayerId id) {
+            return Optional.empty();
+        }
     };
 
     private final StartCommand command = new StartCommand(players);

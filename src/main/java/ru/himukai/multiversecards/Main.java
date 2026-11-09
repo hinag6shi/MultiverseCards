@@ -11,6 +11,7 @@ import ru.himukai.multiversecards.bot.KeyedExecutor;
 import ru.himukai.multiversecards.bot.TelegramBot;
 import ru.himukai.multiversecards.commands.AboutCommand;
 import ru.himukai.multiversecards.commands.AuthorCommand;
+import ru.himukai.multiversecards.commands.CardsCommand;
 import ru.himukai.multiversecards.commands.HelpCommand;
 import ru.himukai.multiversecards.commands.StartCommand;
 import ru.himukai.multiversecards.core.CommandDispatcher;
@@ -19,6 +20,8 @@ import ru.himukai.multiversecards.infra.config.CardJsonLoader;
 import ru.himukai.multiversecards.infra.db.Database;
 import ru.himukai.multiversecards.infra.db.PostgresCardTemplateRepository;
 import ru.himukai.multiversecards.infra.db.PostgresPlayerRepository;
+import ru.himukai.multiversecards.service.CardCatalog;
+import ru.himukai.multiversecards.service.DefaultCardCatalog;
 import ru.himukai.multiversecards.service.DefaultPlayerService;
 import ru.himukai.multiversecards.service.PlayerService;
 
@@ -54,11 +57,13 @@ public final class Main {
              TelegramBotsLongPollingApplication application =
                      new TelegramBotsLongPollingApplication(ObjectMapper::new, () -> httpClient)) {
 
-            var cards = CardJsonLoader.load(new ObjectMapper());
-            new PostgresCardTemplateRepository(database.dataSource()).synchronize(cards);
-            log.info("Загружено шаблонов карточек: {}", cards.size());
+            var templates = CardJsonLoader.load(new ObjectMapper());
+            new PostgresCardTemplateRepository(database.dataSource()).synchronize(templates);
+            CardCatalog catalog = new DefaultCardCatalog(templates);
+            log.info("Загружено шаблонов карточек: {}", templates.size());
 
-            PlayerService players = new DefaultPlayerService(new PostgresPlayerRepository(database.dataSource()));
+            PlayerService players = new DefaultPlayerService(
+                    new PostgresPlayerRepository(database.dataSource()), catalog);
             CommandDispatcher dispatcher = new CommandDispatcher(createRegistry(players));
             TelegramBot bot = new TelegramBot(botToken, dispatcher, httpClient, executor);
 
@@ -74,6 +79,7 @@ public final class Main {
                 new HelpCommand(registry),
                 new AuthorCommand(),
                 new AboutCommand(),
+                new CardsCommand(players),
                 new StartCommand(players)
         );
     }

@@ -43,4 +43,8 @@ public record CardTemplate(
     ) {
         this(id, name, universe, rarity, baseStats, false);
     }
+
+    public String imageResource() {
+        return "cards/images/" + id.value() + ".png";
+    }
 }
