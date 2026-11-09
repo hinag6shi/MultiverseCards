@@ -25,7 +25,7 @@ import java.util.Optional;
 
 public final class PostgresPlayerRepository implements PlayerRepository {
 
-    private static final String SELECT_PLAYER = "SELECT name, cash FROM players WHERE id = ?";
+    private static final String SELECT_PLAYER = "SELECT name, cash, starter_set_claimed FROM players WHERE id = ?";
 
     private static final String SELECT_CARDS = """
             SELECT t.id AS template_id, t.name, t.universe, t.rarity,
@@ -38,8 +38,13 @@ public final class PostgresPlayerRepository implements PlayerRepository {
             """;
 
     private static final String UPSERT_PLAYER = """
-            INSERT INTO players (id, name, cash) VALUES (?, ?, ?)
+            INSERT INTO players (id, name, cash, starter_set_claimed) VALUES (?, ?, ?, ?)
             ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, cash = EXCLUDED.cash
+            """;
+
+    private static final String CLAIM_STARTER_SET = """
+            UPDATE players SET starter_set_claimed = TRUE
+            WHERE id = ? AND starter_set_claimed = FALSE
             """;
 
     /** Усиления и осколки меняются, поэтому обновляем; дата получения остаётся прежней. */
@@ -64,6 +69,7 @@ public final class PostgresPlayerRepository implements PlayerRepository {
         try (Connection conn = dataSource.getConnection()) {
             String name;
             long cash;
+            boolean starterSetClaimed;
             try (PreparedStatement ps = conn.prepareStatement(SELECT_PLAYER)) {
                 ps.setLong(1, id.value());
                 try (ResultSet rs = ps.executeQuery()) {
@@ -72,9 +78,10 @@ public final class PostgresPlayerRepository implements PlayerRepository {
                     }
                     name = rs.getString("name");
                     cash = rs.getLong("cash");
+                    starterSetClaimed = rs.getBoolean("starter_set_claimed");
                 }
             }
-            return Optional.of(new Player(id, name, cash, new CardCollection(loadCards(conn, id))));
+            return Optional.of(new Player(id, name, cash, new CardCollection(loadCards(conn, id)), starterSetClaimed));
         } catch (SQLException e) {
             throw new IllegalStateException("Не удалось загрузить игрока " + id.value(), e);
         }
@@ -94,6 +101,32 @@ public final class PostgresPlayerRepository implements PlayerRepository {
             }
         } catch (SQLException e) {
             throw new IllegalStateException("Не удалось сохранить игрока " + player.id().value(), e);
+        }
+    }
+
+    @Override
+    public boolean grantStarterSetOnce(PlayerId id, java.util.Collection<OwnedCard> cards) {
+        try (Connection conn = dataSource.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                int claimed;
+                try (PreparedStatement ps = conn.prepareStatement(CLAIM_STARTER_SET)) {
+                    ps.setLong(1, id.value());
+                    claimed = ps.executeUpdate();
+                }
+                if (claimed == 0) {
+                    conn.commit();
+                    return false;
+                }
+                upsertCards(conn, id, cards);
+                conn.commit();
+                return true;
+            } catch (SQLException | RuntimeException e) {
+                conn.rollback();
+                throw e;
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("Не удалось выдать стартовый набор игроку " + id.value(), e);
         }
     }
 
@@ -128,14 +161,20 @@ public final class PostgresPlayerRepository implements PlayerRepository {
             ps.setLong(1, player.id().value());
             ps.setString(2, player.name());
             ps.setLong(3, player.cash());
+            ps.setBoolean(4, player.starterSetClaimed());
             ps.executeUpdate();
         }
     }
 
     private static void upsertCards(Connection conn, Player player) throws SQLException {
+        upsertCards(conn, player.id(), player.cards().all());
+    }
+
+    private static void upsertCards(Connection conn, PlayerId id,
+                                    java.util.Collection<OwnedCard> cards) throws SQLException {
         try (PreparedStatement ps = conn.prepareStatement(UPSERT_CARD)) {
-            for (OwnedCard card : player.cards().all()) {
-                ps.setLong(1, player.id().value());
+            for (OwnedCard card : cards) {
+                ps.setLong(1, id.value());
                 ps.setString(2, card.templateId().value());
                 ps.setInt(3, card.boosts().hp());
                 ps.setInt(4, card.boosts().st());

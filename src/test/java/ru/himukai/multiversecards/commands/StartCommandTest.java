@@ -33,6 +33,11 @@ class StartCommandTest {
         public Optional<Player> find(PlayerId id) {
             return Optional.empty();
         }
+
+        @Override
+        public Optional<Player> rename(PlayerId id, String name) {
+            return Optional.empty();
+        }
     };
 
     private final StartCommand command = new StartCommand(players);

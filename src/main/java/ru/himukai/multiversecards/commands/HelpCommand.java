@@ -6,6 +6,8 @@ import ru.himukai.multiversecards.core.CommandContext;
 import ru.himukai.multiversecards.core.CommandRegistry;
 import ru.himukai.multiversecards.core.Keyboard;
 import ru.himukai.multiversecards.core.Response;
+import ru.himukai.multiversecards.domain.player.PlayerId;
+import ru.himukai.multiversecards.service.PlayerService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,9 +21,15 @@ public final class HelpCommand implements Command {
     private static final int BUTTONS_PER_ROW = 2;
 
     private final CommandRegistry registry;
+    private final PlayerService players;
 
     public HelpCommand(CommandRegistry registry) {
+        this(registry, null);
+    }
+
+    public HelpCommand(CommandRegistry registry, PlayerService players) {
         this.registry = registry;
+        this.players = players;
     }
 
     @Override
@@ -42,7 +50,7 @@ public final class HelpCommand implements Command {
     @Override
     public Response execute(CommandContext ctx) {
         if (ctx.args().isEmpty()) {
-            return overview();
+            return overview(ctx);
         }
         String requested = ctx.args().getFirst();
         return registry.find(requested)
@@ -50,8 +58,10 @@ public final class HelpCommand implements Command {
                 .orElseGet(() -> Response.text("Команда «" + requested + "» не найдена. Список команд: /" + name()));
     }
 
-    private Response overview() {
-        StringBuilder text = new StringBuilder("Доступные команды:\n");
+    private Response overview(CommandContext ctx) {
+        String greeting = players == null ? "" : players.find(playerId(ctx.userId()))
+                .map(player -> "Привет, " + player.name() + "! 😊\n\n").orElse("");
+        StringBuilder text = new StringBuilder(greeting).append("Доступные команды:\n");
         List<Button> buttons = new ArrayList<>();
         for (Command command : registry.all()) {
             text.append('/').append(command.name()).append(" — ").append(command.description()).append('\n');
@@ -64,5 +74,9 @@ public final class HelpCommand implements Command {
     private Response details(Command command) {
         Button back = Button.command("← Все команды", name());
         return Response.update(command.usage() + "\n" + command.description(), Keyboard.grid(List.of(back), 1));
+    }
+
+    private static PlayerId playerId(String userId) {
+        return new PlayerId(Long.parseLong(userId.substring(userId.indexOf(':') + 1)));
     }
 }

@@ -13,6 +13,7 @@ import ru.himukai.multiversecards.commands.AboutCommand;
 import ru.himukai.multiversecards.commands.AuthorCommand;
 import ru.himukai.multiversecards.commands.CardsCommand;
 import ru.himukai.multiversecards.commands.HelpCommand;
+import ru.himukai.multiversecards.commands.NameCommand;
 import ru.himukai.multiversecards.commands.StartCommand;
 import ru.himukai.multiversecards.core.CommandDispatcher;
 import ru.himukai.multiversecards.core.CommandRegistry;
@@ -53,9 +54,7 @@ public final class Main {
         // Порядок закрытия обратный: сначала перестаём получать апдейты, затем доделываем
         // принятые, и только потом закрываем БД.
         try (Database database = Database.connect(env);
-             KeyedExecutor executor = new KeyedExecutor(USER_LANES);
-             TelegramBotsLongPollingApplication application =
-                     new TelegramBotsLongPollingApplication(ObjectMapper::new, () -> httpClient)) {
+             KeyedExecutor executor = new KeyedExecutor(USER_LANES)) {
 
             var templates = CardJsonLoader.load(new ObjectMapper());
             new PostgresCardTemplateRepository(database.dataSource()).synchronize(templates);
@@ -65,20 +64,24 @@ public final class Main {
             PlayerService players = new DefaultPlayerService(
                     new PostgresPlayerRepository(database.dataSource()), catalog);
             CommandDispatcher dispatcher = new CommandDispatcher(createRegistry(players));
-            TelegramBot bot = new TelegramBot(botToken, dispatcher, httpClient, executor);
-
-            application.registerBot(botToken, bot);
-            log.info("Бот запущен");
-            Thread.currentThread().join();
+            try (TelegramBot bot = new TelegramBot(botToken, dispatcher, httpClient, executor, players)) {
+                try (TelegramBotsLongPollingApplication application =
+                             new TelegramBotsLongPollingApplication(ObjectMapper::new, () -> httpClient)) {
+                    application.registerBot(botToken, bot);
+                    log.info("Бот запущен");
+                    Thread.currentThread().join();
+                }
+            }
         }
     }
 
     private static CommandRegistry createRegistry(PlayerService players) {
         CommandRegistry registry = new CommandRegistry();
         return registry.register(
-                new HelpCommand(registry),
-                new AuthorCommand(),
-                new AboutCommand(),
+                new HelpCommand(registry, players),
+                new AuthorCommand(players),
+                new AboutCommand(players),
+                new NameCommand(players),
                 new CardsCommand(players),
                 new StartCommand(players)
         );

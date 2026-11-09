@@ -6,6 +6,7 @@ import ru.himukai.multiversecards.domain.player.Player;
 import ru.himukai.multiversecards.domain.player.PlayerId;
 
 import java.util.HashMap;
+import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 
@@ -26,6 +27,11 @@ class DefaultPlayerServiceTest {
         @Override
         public void save(Player player) {
             data.put(player.id(), player);
+        }
+
+        @Override
+        public boolean grantStarterSetOnce(PlayerId id, Collection<ru.himukai.multiversecards.domain.player.OwnedCard> cards) {
+            return false;
         }
     }
 

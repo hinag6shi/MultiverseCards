@@ -3,8 +3,22 @@ package ru.himukai.multiversecards.commands;
 import ru.himukai.multiversecards.core.Command;
 import ru.himukai.multiversecards.core.CommandContext;
 import ru.himukai.multiversecards.core.Response;
+import ru.himukai.multiversecards.domain.player.PlayerId;
+import ru.himukai.multiversecards.service.PlayerService;
+
+import java.util.Optional;
 
 public final class AboutCommand implements Command {
+
+    private final PlayerService players;
+
+    public AboutCommand() {
+        this.players = null;
+    }
+
+    public AboutCommand(PlayerService players) {
+        this.players = players;
+    }
 
     @Override
     public String name() {
@@ -18,7 +32,8 @@ public final class AboutCommand implements Command {
 
     @Override
     public Response execute(CommandContext ctx) {
-        return Response.text("""
+        String greeting = playerName(ctx.userId()).map(name -> "Привет, " + name + "! 😊\n\n").orElse("");
+        return Response.text(greeting + """
                 Multiverse Cards — это коллекционная игра 🧩, \
                 где игрокам предстоит соревноваться с помощью карточек 🃏 \
                 персонажей и существ из разных вселенных 💫
@@ -28,5 +43,11 @@ public final class AboutCommand implements Command {
                 Покорите все вселенные! 🌠
 
                 Желаем вам удачи в развитии! 🍀""");
+    }
+
+    private Optional<String> playerName(String userId) {
+        if (players == null) return Optional.empty();
+        return players.find(new PlayerId(Long.parseLong(userId.substring(userId.indexOf(':') + 1))))
+                .map(player -> player.name());
     }
 }

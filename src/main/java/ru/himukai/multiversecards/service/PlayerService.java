@@ -9,4 +9,6 @@ public interface PlayerService {
     Player start(PlayerId id, String name);
 
     Optional<Player> find(PlayerId id);
+
+    Optional<Player> rename(PlayerId id, String name);
 }

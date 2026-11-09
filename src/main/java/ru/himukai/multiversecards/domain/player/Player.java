@@ -7,12 +7,23 @@ public final class Player {
     private String name;
     private long cash;
     private final CardCollection cards;
+    private boolean starterSetClaimed;
 
     public Player(
             PlayerId id,
             String name,
             long cash,
             CardCollection cards
+    ) {
+        this(id, name, cash, cards, false);
+    }
+
+    public Player(
+            PlayerId id,
+            String name,
+            long cash,
+            CardCollection cards,
+            boolean starterSetClaimed
     ) {
         this.id = Objects.requireNonNull(id, "id");
         this.cards = Objects.requireNonNull(cards, "cards");
@@ -27,6 +38,7 @@ public final class Player {
 
         this.name = name;
         this.cash = cash;
+        this.starterSetClaimed = starterSetClaimed;
     }
 
     public PlayerId id() {
@@ -43,6 +55,10 @@ public final class Player {
 
     public CardCollection cards() {
         return cards;
+    }
+
+    public boolean starterSetClaimed() {
+        return starterSetClaimed;
     }
 
     public void rename(String name) {

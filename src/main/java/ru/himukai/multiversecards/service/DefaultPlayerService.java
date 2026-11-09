@@ -29,18 +29,13 @@ public final class DefaultPlayerService implements PlayerService {
     public Player start(PlayerId id, String name) {
         Player player = repository.find(id).orElse(null);
         if (player == null) {
-            player = new Player(id, name, 0, starterCollection());
+            player = new Player(id, name, 0, new CardCollection());
         } else {
             player.rename(name);
-            // Мигрируем старые профили, созданные до подключения стартовых карточек.
-            if (player.cards().size() == 0) {
-                for (OwnedCard card : starterCollection().all()) {
-                    player.cards().add(card);
-                }
-            }
         }
         repository.save(player);
-        return player;
+        repository.grantStarterSetOnce(id, starterCollection().all());
+        return repository.find(id).orElseThrow(() -> new IllegalStateException("Игрок не найден после сохранения"));
     }
 
     private CardCollection starterCollection() {
@@ -54,5 +49,15 @@ public final class DefaultPlayerService implements PlayerService {
     @Override
     public Optional<Player> find(PlayerId id) {
         return repository.find(Objects.requireNonNull(id, "id"));
+    }
+
+    @Override
+    public Optional<Player> rename(PlayerId id, String name) {
+        Optional<Player> player = repository.find(Objects.requireNonNull(id, "id"));
+        player.ifPresent(found -> {
+            found.rename(name);
+            repository.save(found);
+        });
+        return player;
     }
 }
