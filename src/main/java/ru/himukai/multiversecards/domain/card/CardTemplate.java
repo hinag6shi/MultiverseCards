@@ -1,14 +1,20 @@
+
 package ru.himukai.multiversecards.domain.card;
 
 import java.util.Objects;
 
-/** Карточка из общего пула. У игрока есть только ссылка на неё (см. {@code OwnedCard}). */
+/**
+ * Шаблон карточки из общего каталога.
+ *
+ * @param starter входит ли карточка в стартовый набор
+ */
 public record CardTemplate(
         TemplateId id,
         String name,
         String universe,
         Rarity rarity,
-        Stats baseStats
+        Stats baseStats,
+        boolean starter
 ) {
     public CardTemplate {
         Objects.requireNonNull(id, "id");
@@ -22,5 +28,19 @@ public record CardTemplate(
         if (universe == null || universe.isBlank()) {
             throw new IllegalArgumentException("universe не может быть пустым");
         }
+    }
+
+    /**
+     * Совместимость со старым конструктором.
+     * По умолчанию карточка не входит в стартовый набор.
+     */
+    public CardTemplate(
+            TemplateId id,
+            String name,
+            String universe,
+            Rarity rarity,
+            Stats baseStats
+    ) {
+        this(id, name, universe, rarity, baseStats, false);
     }
 }
