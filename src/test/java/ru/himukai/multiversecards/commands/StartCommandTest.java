@@ -46,7 +46,7 @@ class StartCommandTest {
     void asksForNameWhenNoArgs() {
         Response response = command.execute(new CommandContext("tg:1", List.of()));
 
-        assertTrue(response.text().contains("Как мне к тебе обращаться"));
+        assertTrue(response.text().contains("30 секунд"));
         assertNull(lastId);
     }
 
