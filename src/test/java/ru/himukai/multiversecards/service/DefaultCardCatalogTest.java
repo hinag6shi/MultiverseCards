@@ -1,4 +1,3 @@
-
 package ru.himukai.multiversecards.service;
 
 import org.junit.jupiter.api.Test;

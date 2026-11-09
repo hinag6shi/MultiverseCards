@@ -1,22 +1,22 @@
 services:
   postgres:
     image: postgres:17-alpine
-    container_name: multiverse-cards-db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${DB_NAME}
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME:?Set DB_NAME in .env}
+      POSTGRES_USER: ${DB_USER:?Set DB_USER in .env}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
     ports:
-      # только localhost: наружу базу не открываем
+      # Доступ только с этого компьютера.
       - "127.0.0.1:${DB_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:?Set DB_USER in .env} -d ${DB_NAME:?Set DB_NAME in .env}"]
       interval: 5s
       timeout: 3s
       retries: 10
+      start_period: 5s
 
 volumes:
   pgdata:
