@@ -9,7 +9,7 @@ import java.util.Objects;
  *                   {@link RenderMode#UPDATE} — заменить сообщение, с кнопки которого пришла команда
  *                   (если команду набрали вручную, платформа отправит новое сообщение)
  */
-public record Response(String text, Keyboard keyboard, RenderMode renderMode) {
+public record Response(String text, Keyboard keyboard, RenderMode renderMode, String photoResource) {
 
     public enum RenderMode { NEW, UPDATE }
 
@@ -17,6 +17,10 @@ public record Response(String text, Keyboard keyboard, RenderMode renderMode) {
         Objects.requireNonNull(text, "text");
         Objects.requireNonNull(renderMode, "renderMode");
         keyboard = keyboard == null ? Keyboard.NONE : keyboard;
+    }
+
+    public Response(String text, Keyboard keyboard, RenderMode renderMode) {
+        this(text, keyboard, renderMode, null);
     }
 
     public static Response text(String text) {
@@ -29,5 +33,9 @@ public record Response(String text, Keyboard keyboard, RenderMode renderMode) {
 
     public static Response update(String text, Keyboard keyboard) {
         return new Response(text, keyboard, RenderMode.UPDATE);
+    }
+
+    public static Response photo(String caption, String resource) {
+        return new Response(caption, Keyboard.NONE, RenderMode.NEW, Objects.requireNonNull(resource, "resource"));
     }
 }

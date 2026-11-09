@@ -5,6 +5,7 @@ import ru.himukai.multiversecards.core.CommandContext;
 import ru.himukai.multiversecards.core.Response;
 import ru.himukai.multiversecards.domain.card.CardTemplate;
 import ru.himukai.multiversecards.domain.card.Stats;
+import ru.himukai.multiversecards.domain.card.TemplateId;
 import ru.himukai.multiversecards.domain.player.OwnedCard;
 import ru.himukai.multiversecards.domain.player.Player;
 import ru.himukai.multiversecards.domain.player.PlayerId;
@@ -28,7 +29,12 @@ public final class CardsCommand implements Command {
 
     @Override
     public String description() {
-        return "Посмотреть свою коллекцию карточек";
+        return "Посмотреть коллекцию или открыть карточку по ID";
+    }
+
+    @Override
+    public String usage() {
+        return "/cards [id]";
     }
 
     @Override
@@ -36,6 +42,20 @@ public final class CardsCommand implements Command {
         Optional<Player> player = players.find(playerId(ctx.userId()));
         if (player.isEmpty()) {
             return Response.text("Сначала начни игру командой /start [имя].");
+        }
+        if (ctx.args().size() > 1) {
+            return Response.text("Формат: /cards [id]");
+        }
+        if (!ctx.args().isEmpty()) {
+            String id = ctx.args().get(0);
+            Optional<OwnedCard> owned = player.get().cards().find(new TemplateId(id));
+            if (owned.isEmpty()) {
+                return Response.text("Карточка с ID «" + id + "» не найдена в твоей коллекции.");
+            }
+            CardTemplate card = owned.get().template();
+            String caption = "✨ " + card.name() + "\n" + card.universe() + " · " + card.rarity()
+                    + "\n🆔 " + card.id().value() + "\n" + statsLine(card.baseStats());
+            return Response.photo(caption, card.imageResource());
         }
         if (player.get().cards().all().isEmpty()) {
             return Response.text("Коллекция пока пуста.");
@@ -48,11 +68,13 @@ public final class CardsCommand implements Command {
             Stats stats = card.baseStats();
             text.append("\n• ").append(card.name()).append(" — ").append(card.rarity())
                     .append("\n  ID: ").append(card.id().value())
-                    .append("\n  HP ").append(stats.hp())
-                    .append(" · ST ").append(stats.st())
-                    .append(" · DF ").append(stats.df());
+                    .append("\n  ").append(statsLine(stats));
         }
         return Response.text(text.toString());
+    }
+
+    private static String statsLine(Stats stats) {
+        return "❤️ " + stats.hp() + "   ⚔️ " + stats.st() + "   🛡️ " + stats.df();
     }
 
     private static PlayerId playerId(String userId) {

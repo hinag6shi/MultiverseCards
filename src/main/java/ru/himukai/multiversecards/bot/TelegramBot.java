@@ -7,7 +7,9 @@ import org.telegram.telegrambots.client.okhttp.OkHttpTelegramClient;
 import org.telegram.telegrambots.longpolling.util.LongPollingSingleThreadUpdateConsumer;
 import org.telegram.telegrambots.meta.api.methods.AnswerCallbackQuery;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
+import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
@@ -18,6 +20,7 @@ import ru.himukai.multiversecards.core.CommandDispatcher;
 import ru.himukai.multiversecards.core.Keyboard;
 import ru.himukai.multiversecards.core.Response;
 
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
@@ -81,6 +84,10 @@ public final class TelegramBot implements LongPollingSingleThreadUpdateConsumer 
     private void reply(long chatId, long userId, String text, Integer sourceMessageId) {
         Response response = dispatcher.handle(USER_ID_PREFIX + userId, text);
         String chat = String.valueOf(chatId);
+        if (response.photoResource() != null) {
+            sendPhoto(chat, response.text(), response.photoResource());
+            return;
+        }
         InlineKeyboardMarkup markup = toMarkup(response.keyboard());
 
         boolean edit = response.renderMode() == Response.RenderMode.UPDATE && sourceMessageId != null;
@@ -110,6 +117,24 @@ public final class TelegramBot implements LongPollingSingleThreadUpdateConsumer 
             client.execute(SendMessage.builder().chatId(chatId).text(text).replyMarkup(markup).build());
         } catch (Exception e) {
             log.error("Не удалось отправить ответ в чат {}", chatId, e);
+        }
+    }
+
+    private void sendPhoto(String chatId, String caption, String resource) {
+        try (InputStream input = TelegramBot.class.getClassLoader().getResourceAsStream(resource)) {
+            if (input == null) {
+                log.error("Не найден ресурс изображения {}", resource);
+                sendNew(chatId, caption, null);
+                return;
+            }
+            String filename = resource.substring(resource.lastIndexOf('/') + 1);
+            client.execute(SendPhoto.builder()
+                    .chatId(chatId)
+                    .photo(new InputFile(input, filename))
+                    .caption(caption)
+                    .build());
+        } catch (Exception e) {
+            log.error("Не удалось отправить изображение {} в чат {}", resource, chatId, e);
         }
     }
 
