@@ -56,10 +56,12 @@
 
 ### Как запустить
 
-1. `cp .env.example .env` и заполнить `BOT_TOKEN` и `DB_PASSWORD` (`.env` в `.gitignore`, не коммитить).
-2. `docker compose up -d` — поднять базу. Проверка: `docker compose ps` (статус `healthy`).
-3. Запустить бота (`Main`). При старте Flyway создаст таблицы.
-4. Посмотреть таблицы: `docker compose exec postgres psql -U <DB_USER> -d <DB_NAME> -c "\dt"`.
+1. Нужны Docker Engine и Compose plugin (`docker compose version`).
+2. Создать `.env` из шаблона и заполнить `BOT_TOKEN` и `DB_PASSWORD` надёжным паролем (`.env` в `.gitignore`, не коммитить).
+3. Поднять базу: `docker compose up -d`.
+4. Дождаться `healthy`: `docker compose ps`; логи при проблемах: `docker compose logs -f postgres`.
+5. Запустить бота (`Main`). При старте Flyway создаст таблицы.
+6. Посмотреть таблицы: `docker compose exec postgres psql -U <DB_USER> -d <DB_NAME> -c "\dt"`.
 
 Полезно знать:
 - `docker compose down` — остановить, данные сохраняются (том `pgdata`).
@@ -93,8 +95,31 @@
 ### Схема БД
 
 - `players(id BIGINT PK, name, cash)` — `id` это Telegram user id (`tg:123` → `123`).
-- `card_templates(id TEXT PK, name, universe, rarity, base_hp, base_st, base_df, is_starter)` — каталог карточек. Пока пустой.
+- `card_templates(id TEXT PK, name, universe, rarity, base_hp, base_st, base_df, is_starter)` — каталог карточек, синхронизируется из JSON при старте бота.
 - `player_cards(player_id → players, template_id → card_templates, hp_boost, st_boost, df_boost, shards, obtained_at)`, первичный ключ `(player_id, template_id)` — карточки игроков. Усиления хранятся как счётчики, характеристики считаются на лету.
+
+### Формат карточек
+
+Каждый файл `src/main/resources/cards/*.json` описывает одну вселенную. Формат как в `Sanrio.json`:
+
+```json
+{
+  "universe": "Sanrio",
+  "cards": [
+    {
+      "id": "badtz_common",
+      "name": "Badtz",
+      "rarity": "COMMON",
+      "hp": 100,
+      "st": 16,
+      "df": 11,
+      "starter": true
+    }
+  ]
+}
+```
+
+`id` уникален среди всех файлов; `rarity` — одно из `COMMON`, `UNCOMMON`, `RARE`, `EPIC`, `MYTHIC`, `LEGENDARY`, `DIVINE`; характеристики — целые числа от 0; `starter` — `true` или `false`. При запуске бот читает файлы и синхронизирует шаблоны в PostgreSQL; JSON остаётся источником данных.
 
 ### Принятые решения
 
@@ -105,8 +130,17 @@
 
 ### Дальше (задача 2)
 
-- [ ] Загрузка карточек из JSON (`resources/cards/*.json`) в `card_templates` при старте и реализация `CardCatalog` поверх неё (вместо наполнения миграцией).
+- [x] Загрузка карточек из JSON (`src/main/resources/cards/*.json`) в `card_templates` при старте.
 - [ ] Выдача стартового набора при первом `/start` (`is_starter = true`).
-- [ ] Команда просмотра карточек.
-- [ ] Интеграционные тесты репозитория (Testcontainers) — нужны, чтобы проверять SQL.
-- [ ] Решить, как хранить `userId` других платформ (сейчас `PlayerId` — это `long`, подходит только Telegram).
+- [ ] Команда просмотра коллекции игрока.
+- [ ] Проверка SQL репозитория на PostgreSQL (например, через Testcontainers).
+
+Платформа проекта — Telegram. Поддержку других платформ не планируем, поэтому хранение универсального внешнего ID и отдельные адаптеры для них в объём работ не входят.
+
+#### Что уже есть в коде и пока оставляем
+
+- `PlayerId` — типизированный Telegram ID с проверкой положительного значения; он используется моделью игрока и репозиторием.
+- `CardCatalog` и `DefaultCardCatalog` — каталог шаблонов и выбор стартового набора; они нужны для загрузки JSON и выдачи стартовых карточек.
+- `CommandContext`, `Response`, `Button` и `Keyboard` — контракт команд и кнопок справки, используется Telegram-ботом и тестами.
+
+Не удалять классы только потому, что они пока не подключены к `Main`: перечисленные выше нужны для оставшихся пунктов задачи 2. Удалять стоит только код без текущего использования и без запланированного сценария.

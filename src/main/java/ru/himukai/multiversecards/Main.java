@@ -15,7 +15,9 @@ import ru.himukai.multiversecards.commands.HelpCommand;
 import ru.himukai.multiversecards.commands.StartCommand;
 import ru.himukai.multiversecards.core.CommandDispatcher;
 import ru.himukai.multiversecards.core.CommandRegistry;
+import ru.himukai.multiversecards.infra.config.CardJsonLoader;
 import ru.himukai.multiversecards.infra.db.Database;
+import ru.himukai.multiversecards.infra.db.PostgresCardTemplateRepository;
 import ru.himukai.multiversecards.infra.db.PostgresPlayerRepository;
 import ru.himukai.multiversecards.service.DefaultPlayerService;
 import ru.himukai.multiversecards.service.PlayerService;
@@ -51,6 +53,10 @@ public final class Main {
              KeyedExecutor executor = new KeyedExecutor(USER_LANES);
              TelegramBotsLongPollingApplication application =
                      new TelegramBotsLongPollingApplication(ObjectMapper::new, () -> httpClient)) {
+
+            var cards = CardJsonLoader.load(new ObjectMapper());
+            new PostgresCardTemplateRepository(database.dataSource()).synchronize(cards);
+            log.info("Загружено шаблонов карточек: {}", cards.size());
 
             PlayerService players = new DefaultPlayerService(new PostgresPlayerRepository(database.dataSource()));
             CommandDispatcher dispatcher = new CommandDispatcher(createRegistry(players));
