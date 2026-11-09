@@ -1,0 +1,267 @@
+{
+    "universe": "Sanrio",
+    "cards": [
+        {
+            "id": "sanrio_badtz_common",
+            "name": "Badtz",
+            "rarity": "COMMON",
+            "hp": 100,
+            "st": 16,
+            "df": 11,
+            "starter": true
+        },
+        {
+            "id": "sanrio_kuromi_common",
+            "name": "Kuromi",
+            "rarity": "COMMON",
+            "hp": 83,
+            "st": 23,
+            "df": 10,
+            "starter": true
+        },
+        {
+            "id": "sanrio_hello_kitty_common",
+            "name": "Hello Kitty",
+            "rarity": "COMMON",
+            "hp": 80,
+            "st": 23,
+            "df": 8,
+            "starter": false
+        },
+        {
+            "id": "sanrio_keroppi_sailor_uncommon",
+            "name": "Keroppi",
+            "rarity": "UNCOMMON",
+            "hp": 108,
+            "st": 28,
+            "df": 12,
+            "starter": false
+        },
+        {
+            "id": "sanrio_badtz_doctor_uncommon",
+            "name": "Badtz",
+            "rarity": "UNCOMMON",
+            "hp": 118,
+            "st": 24,
+            "df": 14,
+            "starter": false
+        },
+        {
+            "id": "sanrio_ribbon_melody_uncommon",
+            "name": "My Melody",
+            "rarity": "UNCOMMON",
+            "hp": 114,
+            "st": 29,
+            "df": 12,
+            "starter": false
+        },
+        {
+            "id": "sanrio_mad_kuromi_uncommon",
+            "name": "Kuromi",
+            "rarity": "UNCOMMON",
+            "hp": 114,
+            "st": 30,
+            "df": 12,
+            "starter": false
+        },
+        {
+            "id": "sanrio_photo_kitty_uncommon",
+            "name": "Hello Kitty",
+            "rarity": "UNCOMMON",
+            "hp": 102,
+            "st": 29,
+            "df": 13,
+            "starter": false
+        },
+        {
+            "id": "sanrio_purin_rare",
+            "name": "Purin",
+            "rarity": "RARE",
+            "hp": 134,
+            "st": 33,
+            "df": 15,
+            "starter": false
+        },
+        {
+            "id": "sanrio_cinnamoroll_rare",
+            "name": "Cinnamoroll",
+            "rarity": "RARE",
+            "hp": 120,
+            "st": 35,
+            "df": 15,
+            "starter": false
+        },
+        {
+            "id": "sanrio_keroppi_rare",
+            "name": "Keroppi",
+            "rarity": "RARE",
+            "hp": 127,
+            "st": 37,
+            "df": 16,
+            "starter": false
+        },
+        {
+            "id": "sanrio_badtz_rock_rare",
+            "name": "Badtz",
+            "rarity": "RARE",
+            "hp": 120,
+            "st": 37,
+            "df": 17,
+            "starter": false
+        },
+        {
+            "id": "sanrio_cape_melody_rare",
+            "name": "My Melody",
+            "rarity": "RARE",
+            "hp": 120,
+            "st": 31,
+            "df": 17,
+            "starter": false
+        },
+        {
+            "id": "sanrio_cinnamoroll_cupid_epic",
+            "name": "Cinnamoroll",
+            "rarity": "EPIC",
+            "hp": 143,
+            "st": 42,
+            "df": 18,
+            "starter": false
+        },
+        {
+            "id": "sanrio_keroppi_bowtie_epic",
+            "name": "Keroppi",
+            "rarity": "EPIC",
+            "hp": 141,
+            "st": 40,
+            "df": 21,
+            "starter": false
+        },
+        {
+            "id": "sanrio_badtz_naruto_epic",
+            "name": "Badtz",
+            "rarity": "EPIC",
+            "hp": 136,
+            "st": 43,
+            "df": 19,
+            "starter": false
+        },
+        {
+            "id": "sanrio_flower_melody_epic",
+            "name": "My Melody",
+            "rarity": "EPIC",
+            "hp": 150,
+            "st": 38,
+            "df": 20,
+            "starter": false
+        },
+        {
+            "id": "sanrio_cube_kuromi_epic",
+            "name": "Kuromi",
+            "rarity": "EPIC",
+            "hp": 145,
+            "st": 44,
+            "df": 20,
+            "starter": false
+        },
+        {
+            "id": "sanrio_ribbon_kitty_epic",
+            "name": "Hello Kitty",
+            "rarity": "EPIC",
+            "hp": 144,
+            "st": 40,
+            "df": 21,
+            "starter": false
+        },
+        {
+            "id": "sanrio_witch_kuromi_mythic",
+            "name": "Kuromi",
+            "rarity": "MYTHIC",
+            "hp": 162,
+            "st": 50,
+            "df": 22,
+            "starter": false
+        },
+        {
+            "id": "sanrio_fairy_kitty_mythic",
+            "name": "Hello Kitty",
+            "rarity": "MYTHIC",
+            "hp": 152,
+            "st": 45,
+            "df": 24,
+            "starter": false
+        },
+        {
+            "id": "sanrio_twin_stars_legendary",
+            "name": "Little Twin Stars",
+            "rarity": "LEGENDARY",
+            "hp": 174,
+            "st": 51,
+            "df": 26,
+            "starter": false
+        },
+        {
+            "id": "sanrio_cinnamoroll_king_legendary",
+            "name": "Cinnamoroll",
+            "rarity": "LEGENDARY",
+            "hp": 174,
+            "st": 51,
+            "df": 26,
+            "starter": false
+        },
+        {
+            "id": "sanrio_soft_melody_legendary",
+            "name": "My Melody",
+            "rarity": "LEGENDARY",
+            "hp": 164,
+            "st": 55,
+            "df": 27,
+            "starter": false
+        },
+        {
+            "id": "sanrio_halloween_kuromi_legendary",
+            "name": "Kuromi",
+            "rarity": "LEGENDARY",
+            "hp": 174,
+            "st": 55,
+            "df": 25,
+            "starter": false
+        },
+        {
+            "id": "sanrio_hello_kitty_divine",
+            "name": "Hello Kitty",
+            "rarity": "DIVINE",
+            "hp": 177,
+            "st": 56,
+            "df": 30,
+            "starter": false
+        },
+        {
+            "id": "sanrio_kuromi_rose_divine",
+            "name": "Kuromi",
+            "rarity": "DIVINE",
+            "hp": 180,
+            "st": 58,
+            "df": 30,
+            "starter": false
+        },
+        {
+            "id": "sanrio_pochacco_hearts_divine",
+            "name": "Pochacco",
+            "rarity": "DIVINE",
+            "hp": 179,
+            "st": 59,
+            "df": 28,
+            "starter": false
+        },
+        {
+            "id": "sanrio_cinnamoroll_angel_divine",
+            "name": "Cinnamoroll",
+            "rarity": "DIVINE",
+            "hp": 176,
+            "st": 58,
+            "df": 30,
+            "starter": false
+        }
+    ]
+}
+Claude finished the response
