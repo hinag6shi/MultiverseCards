@@ -12,6 +12,5 @@ public interface PlayerRepository {
 
     void save(Player player);
 
-    /** Atomically claims the starter set once and persists its cards. */
     boolean grantStarterSetOnce(PlayerId id, Collection<OwnedCard> cards);
 }
