@@ -30,20 +30,6 @@ public record CardTemplate(
         }
     }
 
-    /**
-     * Совместимость со старым конструктором.
-     * По умолчанию карточка не входит в стартовый набор.
-     */
-    public CardTemplate(
-            TemplateId id,
-            String name,
-            String universe,
-            Rarity rarity,
-            Stats baseStats
-    ) {
-        this(id, name, universe, rarity, baseStats, false);
-    }
-
     public String imageResource() {
         return "cards/images/" + id.value() + ".png";
     }

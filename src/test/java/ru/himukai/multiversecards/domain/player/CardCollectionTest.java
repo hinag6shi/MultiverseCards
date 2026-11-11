@@ -20,7 +20,7 @@ class CardCollectionTest {
     private static final Instant NOW = Instant.parse("2026-11-05T10:00:00Z");
 
     private static CardTemplate template(String id) {
-        return new CardTemplate(new TemplateId(id), "Имя " + id, "Вселенная", Rarity.COMMON, new Stats(10, 5, 3));
+        return new CardTemplate(new TemplateId(id), "Имя " + id, "Вселенная", Rarity.COMMON, new Stats(10, 5, 3), false);
     }
 
     private static OwnedCard card(String id) {

@@ -29,7 +29,7 @@ public final class PostgresPlayerRepository implements PlayerRepository {
 
     private static final String SELECT_CARDS = """
             SELECT t.id AS template_id, t.name, t.universe, t.rarity,
-                   t.base_hp, t.base_st, t.base_df,
+                   t.base_hp, t.base_st, t.base_df, t.is_starter,
                    pc.hp_boost, pc.st_boost, pc.df_boost, pc.shards, pc.obtained_at
             FROM player_cards pc
             JOIN card_templates t ON t.id = pc.template_id
@@ -141,7 +141,8 @@ public final class PostgresPlayerRepository implements PlayerRepository {
                             rs.getString("name"),
                             rs.getString("universe"),
                             Rarity.valueOf(rs.getString("rarity")),
-                            new Stats(rs.getInt("base_hp"), rs.getInt("base_st"), rs.getInt("base_df"))
+                            new Stats(rs.getInt("base_hp"), rs.getInt("base_st"), rs.getInt("base_df")),
+                            rs.getBoolean("is_starter")
                     );
                     Boosts boosts = new Boosts(rs.getInt("hp_boost"), rs.getInt("st_boost"), rs.getInt("df_boost"));
                     cards.add(new OwnedCard(
