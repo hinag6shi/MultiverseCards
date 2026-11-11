@@ -6,7 +6,7 @@
 
     <groupId>ru.himukai</groupId>
     <artifactId>MultiverseCards</artifactId>
-    <version>1.1</version>
+    <version>1.2</version>
 
     <properties>
         <java.version>25</java.version>
