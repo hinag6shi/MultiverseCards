@@ -212,7 +212,14 @@ public final class TelegramBot implements LongPollingSingleThreadUpdateConsumer,
 
     private void sendNew(String chatId, String text, InlineKeyboardMarkup markup) {
         try {
-            client.execute(SendMessage.builder().chatId(chatId).text(text).replyMarkup(markup).build());
+            SendMessage message = SendMessage.builder()
+                    .chatId(chatId)
+                    .text(text)
+                    .parseMode("HTML")
+                    .replyMarkup(markup)
+                    .build();
+
+            client.execute(message);
         } catch (Exception e) {
             log.error("Не удалось отправить ответ в чат {}", chatId, e);
         }

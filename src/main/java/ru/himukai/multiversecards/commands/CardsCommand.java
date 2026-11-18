@@ -56,29 +56,29 @@ public final class CardsCommand implements Command {
             String caption =
                     "🃏 Name: " + card.name() + "\n🔮 Universe: " + card.universe()
                     + "\n⭐ Rarity: " + card.rarity()
-                    + "\n💠 ID: `" + card.id().value() + "`\n" + statsLine(card.baseStats());
+                    + "\n💠 ID: " + card.id().value() + "\n" + statsLine(card.baseStats());
             return Response.photo(caption, card.imageResource());
         }
         if (player.get().cards().all().isEmpty()) {
             return Response.text("Коллекция пока пуста.");
         }
 
-        StringBuilder text = new StringBuilder("Твоя коллекция (")
-                .append(player.get().cards().size()).append("):\n");
+        StringBuilder text = new StringBuilder("<b>Твоя коллекция (")
+                .append(player.get().cards().size()).append("):</b>");
         for (OwnedCard owned : player.get().cards().all()) {
             CardTemplate card = owned.template();
             Stats stats = card.baseStats();
             text.append("\n• ").append(card.name()).append(" — ").append(card.rarity())
-                    .append("\n  ID: ").append(card.id().value())
-                    .append("\n  ").append(statsLine(stats));
+                    .append("\n  ID: <code>").append(card.id().value()).append("</code>")
+                    .append("\n").append(statsLine(stats));
         }
         return Response.text(text.toString());
     }
 
     private static String statsLine(Stats stats) {
-        return "_" +"❤️ Health: " + stats.hp() +
-                "\n⚔️ Strength: " + stats.st() +
-                "\n🛡️ Defense: " + stats.df() + "_";
+        return "❤️ Health: " + stats.hp() +
+               "\n⚔️ Strength: " + stats.st() +
+               "\n🛡️ Defense: " + stats.df();
     }
 
     private static PlayerId playerId(String userId) {
