@@ -53,8 +53,10 @@ public final class CardsCommand implements Command {
                 return Response.text("Карточка с ID «" + id + "» не найдена в твоей коллекции.");
             }
             CardTemplate card = owned.get().template();
-            String caption = "✨ " + card.name() + "\n" + card.universe() + " · " + card.rarity()
-                    + "\n🆔 " + card.id().value() + "\n" + statsLine(card.baseStats());
+            String caption =
+                    "🃏 Name: " + card.name() + "\n🔮 Universe: " + card.universe()
+                    + "\n⭐ Rarity: " + card.rarity()
+                    + "\n💠 ID: `" + card.id().value() + "`\n" + statsLine(card.baseStats());
             return Response.photo(caption, card.imageResource());
         }
         if (player.get().cards().all().isEmpty()) {
@@ -74,7 +76,9 @@ public final class CardsCommand implements Command {
     }
 
     private static String statsLine(Stats stats) {
-        return "❤️ " + stats.hp() + "   ⚔️ " + stats.st() + "   🛡️ " + stats.df();
+        return "_" +"❤️ Health: " + stats.hp() +
+                "\n⚔️ Strength: " + stats.st() +
+                "\n🛡️ Defense: " + stats.df() + "_";
     }
 
     private static PlayerId playerId(String userId) {

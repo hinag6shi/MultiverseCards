@@ -42,18 +42,18 @@ public final class StartCommand implements Command {
             Player refreshed = players.start(id, player.name());
             if (setWasClaimed) {
                 return Response.text("С возвращением, " + refreshed.name()
-                        + "! Стартовый набор уже выдавался и повторно не выдаётся.");
+                        + "!\nСтартовый набор уже выдавался и повторно не выдаётся.");
             }
             return Response.text("С возвращением, " + refreshed.name()
-                    + "! Стартовый набор выдан — он выдаётся только один раз.");
+                    + "!\nСтартовый набор выдан — он выдаётся только один раз.");
         }
         if (!ctx.args().isEmpty()) {
             String name = String.join(" ", ctx.args()).strip();
             Player registered = players.start(id, name);
             return Response.text("Приятно познакомиться, " + registered.name()
-                    + "! Стартовый набор выдан. Посмотреть: /cards");
+                    + "!\nСтартовый набор выдан 🎒\nПосмотреть: /cards");
         }
-        return Response.text("Сначала напиши /start, затем отправь имя в течение 30 секунд.");
+        return Response.text("Сначала напиши /start, затем отправь имя в течение 30 секунд! ⏱️");
     }
 
     /** "tg:12345" -> PlayerId(12345) */
