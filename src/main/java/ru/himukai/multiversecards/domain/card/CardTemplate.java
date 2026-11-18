@@ -1,4 +1,3 @@
-
 package ru.himukai.multiversecards.domain.card;
 
 import java.util.Objects;
