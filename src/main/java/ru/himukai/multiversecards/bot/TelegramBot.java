@@ -199,7 +199,7 @@ public final class TelegramBot implements LongPollingSingleThreadUpdateConsumer,
     private boolean tryEdit(String chatId, int messageId, String text, InlineKeyboardMarkup markup) {
         try {
             client.execute(EditMessageText.builder()
-                    .chatId(chatId).messageId(messageId).text(text).replyMarkup(markup).build());
+                    .chatId(chatId).messageId(messageId).text(text).parseMode("HTML").replyMarkup(markup).build());
             return true;
         } catch (Exception e) {
             if (e.getMessage() != null && e.getMessage().contains(NOT_MODIFIED)) {

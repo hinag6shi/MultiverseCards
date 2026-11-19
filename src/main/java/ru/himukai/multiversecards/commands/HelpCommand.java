@@ -67,7 +67,9 @@ public final class HelpCommand implements Command {
             text.append('/').append(command.name()).append(" — ").append(command.description()).append('\n');
             buttons.add(Button.command("/" + command.name(), name(), command.name()));
         }
-        text.append("\nПодробнее: /help <команда>");
+        // Сообщения отправляются с HTML parse mode: экранируем аргумент в подсказке,
+        // чтобы Telegram не воспринял его как неизвестный HTML-тег.
+        text.append("\nПодробнее: /help &lt;команда&gt;");
         return Response.update(text.toString(), Keyboard.grid(buttons, BUTTONS_PER_ROW));
     }
 
