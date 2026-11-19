@@ -35,7 +35,7 @@ public final class NameCommand implements Command {
     public Response execute(CommandContext ctx) {
         PlayerId id = new PlayerId(Long.parseLong(ctx.userId().substring(ctx.userId().indexOf(':') + 1)));
         if (ctx.args().isEmpty()) {
-            return Response.text("Укажи новое имя: " + usage());
+            return Response.text("Укажи новое имя: /name &lt;новое имя&gt;");
         }
         String name = String.join(" ", ctx.args()).strip();
         return players.rename(id, name)
