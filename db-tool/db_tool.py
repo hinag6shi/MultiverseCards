@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""Small interactive PostgreSQL table browser and row deleter."""
+"""Command-line PostgreSQL table browser and editor."""
 
+import argparse
 import os
 import sys
 from pathlib import Path
@@ -10,12 +11,11 @@ try:
     from psycopg import sql
     from psycopg.rows import dict_row
 except ImportError:
-    print("Missing dependency. Run: python -m pip install -r db-tool/requirements.txt")
+    print("Missing dependency. Run: python -m pip install -r db-tool/requirements.txt", file=sys.stderr)
     raise SystemExit(1)
 
 
 def load_dotenv():
-    """Read simple KEY=VALUE entries from the project .env without overriding env vars."""
     env_file = Path(__file__).resolve().parent.parent / ".env"
     if not env_file.exists():
         return
@@ -24,8 +24,7 @@ def load_dotenv():
         if not line or line.startswith("#") or "=" not in line:
             continue
         key, value = line.split("=", 1)
-        value = value.strip().strip("\"'")
-        os.environ.setdefault(key.strip(), value)
+        os.environ.setdefault(key.strip(), value.strip().strip("\"'"))
 
 
 def connect():
@@ -39,15 +38,35 @@ def connect():
     }
     missing = [key for key in ("dbname", "user", "password") if not config[key]]
     if missing:
-        print("Set DB_NAME, DB_USER and DB_PASSWORD in .env or environment variables.")
-        raise SystemExit(2)
+        raise RuntimeError("Set DB_NAME, DB_USER and DB_PASSWORD in .env or environment variables.")
     return psycopg.connect(**config, row_factory=dict_row)
 
 
-def read_tables(conn):
+def relation_name(value):
+    parts = value.split(".")
+    if len(parts) == 1 and parts[0]:
+        return sql.Identifier("public", parts[0])
+    if len(parts) == 2 and all(parts):
+        return sql.Identifier(*parts)
+    raise ValueError("Table must be written as table or schema.table")
+
+
+def relation_parts(value):
+    parts = value.split(".")
+    if len(parts) == 1 and parts[0]:
+        return "public", parts[0]
+    if len(parts) == 2 and all(parts):
+        return parts
+    raise ValueError("Table must be written as table or schema.table")
+
+
+def read_relations(conn):
     with conn.cursor() as cur:
         cur.execute("""
-            SELECT n.nspname AS schema, c.relname AS name, c.relkind AS kind
+            SELECT n.nspname AS schema, c.relname AS name,
+                   CASE c.relkind WHEN 'r' THEN 'table' WHEN 'p' THEN 'partitioned table'
+                        WHEN 'v' THEN 'view' WHEN 'm' THEN 'materialized view'
+                        ELSE 'foreign table' END AS type
             FROM pg_catalog.pg_class c
             JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
             WHERE c.relkind IN ('r', 'p', 'v', 'm', 'f')
@@ -58,81 +77,174 @@ def read_tables(conn):
         return cur.fetchall()
 
 
-def display_value(value, width=48):
-    value = str(value).replace("\n", "\\n")
-    return value if len(value) <= width else value[: width - 1] + "…"
-
-
-def browse_table(conn, table):
-    schema, name = table["schema"], table["name"]
-    relation = sql.Identifier(schema, name)
-    print(f"\n{schema}.{name}" + (" (read-only relation)" if table["kind"] not in ("r", "p") else ""))
+def get_columns(conn, table):
+    schema, name = relation_parts(table)
     with conn.cursor() as cur:
-        if table["kind"] in ("r", "p"):
-            query = sql.SQL("SELECT tableoid::oid::text AS __db_tool_tableoid, ctid::text AS __db_tool_ctid, * FROM {} LIMIT 100")
+        cur.execute("""
+            SELECT column_name, data_type, is_nullable, column_default
+            FROM information_schema.columns
+            WHERE table_schema = %s AND table_name = %s
+            ORDER BY ordinal_position
+        """, (schema, name))
+        columns = cur.fetchall()
+    if not columns:
+        raise ValueError(f"Table or view not found: {schema}.{name}")
+    return columns
+
+
+def parse_assignments(items, option):
+    result = {}
+    for item in items:
+        if "=" not in item:
+            raise ValueError(f"{option} expects column=value, got {item!r}")
+        column, value = item.split("=", 1)
+        if not column or column in result:
+            raise ValueError(f"Invalid or repeated column in {option}: {column!r}")
+        result[column] = None if value.upper() == "NULL" else value
+    return result
+
+
+def validate_columns(columns, assignments):
+    known = {column["column_name"] for column in columns}
+    unknown = set(assignments) - known
+    if unknown:
+        raise ValueError("Unknown column(s): " + ", ".join(sorted(unknown)))
+
+
+def make_where(conditions):
+    if not conditions:
+        raise ValueError("Specify at least one --where column=value condition")
+    clauses = []
+    values = []
+    for column, value in conditions.items():
+        identifier = sql.Identifier(column)
+        if value is None:
+            clauses.append(sql.SQL("{} IS NULL").format(identifier))
         else:
-            query = sql.SQL("SELECT * FROM {} LIMIT 100")
-        cur.execute(query.format(relation))
-        rows = cur.fetchall()
+            clauses.append(sql.SQL("{} = %s").format(identifier))
+            values.append(value)
+    return sql.SQL(" AND ").join(clauses), values
+
+
+def print_rows(rows):
     if not rows:
-        print("  (empty)")
-        input("Enter to continue… ")
+        print("No rows.")
+        return
+    columns = list(rows[0].keys())
+    widths = {name: min(36, max(len(name), *(len(str(row[name]).replace("\n", "\\n")) for row in rows)))
+              for name in columns}
+    print(" | ".join(name.ljust(widths[name]) for name in columns))
+    print("-+-".join("-" * widths[name] for name in columns))
+    for row in rows:
+        cells = []
+        for name in columns:
+            value = "NULL" if row[name] is None else str(row[name]).replace("\n", "\\n")
+            cells.append((value if len(value) <= 36 else value[:35] + "…").ljust(widths[name]))
+        print(" | ".join(cells))
+
+
+def build_parser():
+    parser = argparse.ArgumentParser(description="Browse and edit a PostgreSQL database.")
+    commands = parser.add_subparsers(dest="command", required=True)
+    commands.add_parser("tables", help="list tables and views")
+
+    describe = commands.add_parser("describe", help="show columns of a table")
+    describe.add_argument("table")
+
+    show = commands.add_parser("show", help="show rows")
+    show.add_argument("table")
+    show.add_argument("--limit", type=int, default=50)
+    show.add_argument("--offset", type=int, default=0)
+    show.add_argument("--where", action="append", default=[], metavar="COL=VALUE")
+
+    delete = commands.add_parser("delete", help="delete rows matching conditions")
+    delete.add_argument("table")
+    delete.add_argument("--where", action="append", required=True, metavar="COL=VALUE")
+
+    update = commands.add_parser("update", help="update rows matching conditions")
+    update.add_argument("table")
+    update.add_argument("--where", action="append", required=True, metavar="COL=VALUE")
+    update.add_argument("--set", action="append", required=True, metavar="COL=VALUE")
+
+    insert = commands.add_parser("insert", help="insert a row")
+    insert.add_argument("table")
+    insert.add_argument("--set", action="append", required=True, metavar="COL=VALUE")
+    return parser
+
+
+def run(conn, args):
+    if args.command == "tables":
+        for relation in read_relations(conn):
+            print(f"{relation['schema']}.{relation['name']}\t{relation['type']}")
         return
 
-    internal_columns = {"__db_tool_ctid", "__db_tool_tableoid"}
-    columns = [key for key in rows[0] if key not in internal_columns]
-    print("  #  " + " | ".join(columns))
-    for i, row in enumerate(rows, 1):
-        print(f"{i:>3}  " + " | ".join(display_value(row[col]) for col in columns))
-    if table["kind"] not in ("r", "p"):
-        input("\nEnter to continue… ")
+    relation = relation_name(args.table)
+    columns = get_columns(conn, args.table)
+    if args.command == "describe":
+        print("column\ttype\tnullable\tdefault")
+        for column in columns:
+            print(f"{column['column_name']}\t{column['data_type']}\t{column['is_nullable']}\t{column['column_default'] or ''}")
         return
 
-    choice = input("\nНомер строки для удаления (Enter — назад): ").strip()
-    if not choice:
-        return
-    try:
-        index = int(choice) - 1
-        row = rows[index]
-    except (ValueError, IndexError):
-        print("Нет строки с таким номером.")
-        return
-
-    # ctid works for tables with or without a primary key and avoids assumptions
-    # about a particular application's schema.
     with conn.cursor() as cur:
-        cur.execute(
-            sql.SQL("DELETE FROM {} WHERE tableoid = %s::oid AND ctid = %s::tid").format(relation),
-            (row["__db_tool_tableoid"], row["__db_tool_ctid"]),
-        )
-    conn.commit()
-    print("Удалено." if cur.rowcount else "Строка уже отсутствует.")
+        if args.command == "show":
+            if args.limit < 1 or args.offset < 0:
+                raise ValueError("--limit must be positive and --offset cannot be negative")
+            conditions = parse_assignments(args.where, "--where")
+            validate_columns(columns, conditions)
+            query = sql.SQL("SELECT * FROM {} ").format(relation)
+            values = []
+            if conditions:
+                where, values = make_where(conditions)
+                query += sql.SQL("WHERE ") + where
+            query += sql.SQL(" LIMIT %s OFFSET %s")
+            cur.execute(query, (*values, args.limit, args.offset))
+            print_rows(cur.fetchall())
+        elif args.command == "delete":
+            conditions = parse_assignments(args.where, "--where")
+            validate_columns(columns, conditions)
+            where, values = make_where(conditions)
+            cur.execute(sql.SQL("DELETE FROM {} WHERE ").format(relation) + where, values)
+            print(f"Deleted {cur.rowcount} row(s).")
+        elif args.command == "update":
+            conditions = parse_assignments(args.where, "--where")
+            changes = parse_assignments(args.set, "--set")
+            validate_columns(columns, {**conditions, **changes})
+            where, where_values = make_where(conditions)
+            set_sql = sql.SQL(", ").join(
+                sql.SQL("{} = %s").format(sql.Identifier(column)) for column in changes
+            )
+            cur.execute(
+                sql.SQL("UPDATE {} SET ").format(relation) + set_sql + sql.SQL(" WHERE ") + where,
+                (*changes.values(), *where_values),
+            )
+            print(f"Updated {cur.rowcount} row(s).")
+        elif args.command == "insert":
+            values = parse_assignments(args.set, "--set")
+            validate_columns(columns, values)
+            names = list(values)
+            cur.execute(
+                sql.SQL("INSERT INTO {} ({}) VALUES ({})").format(
+                    relation,
+                    sql.SQL(", ").join(map(sql.Identifier, names)),
+                    sql.SQL(", ").join(sql.Placeholder() for _ in names),
+                ),
+                list(values.values()),
+            )
+            print("Inserted 1 row.")
 
 
 def main():
+    args = build_parser().parse_args()
     try:
-        with connect() as conn:
-            print(f"Подключено к PostgreSQL: {conn.info.dbname} @ {conn.info.host}:{conn.info.port}")
-            while True:
-                tables = read_tables(conn)
-                if not tables:
-                    print("Таблиц и представлений не найдено.")
-                    return
-                print("\nТаблицы и представления:")
-                for i, table in enumerate(tables, 1):
-                    suffix = " [только просмотр]" if table["kind"] not in ("r", "p") else ""
-                    print(f"{i:>3}. {table['schema']}.{table['name']}{suffix}")
-                choice = input("\nНомер таблицы (Enter — выход): ").strip()
-                if not choice:
-                    return
-                try:
-                    table = tables[int(choice) - 1]
-                except (ValueError, IndexError):
-                    print("Нет таблицы с таким номером.")
-                    continue
-                browse_table(conn, table)
-    except (psycopg.Error, OSError) as exc:
-        print(f"Ошибка: {exc}", file=sys.stderr)
+        conn = connect()
+        try:
+            with conn:
+                run(conn, args)
+        finally:
+            conn.close()
+    except (psycopg.Error, OSError, RuntimeError, ValueError) as exc:
+        print(f"Error: {exc}", file=sys.stderr)
         raise SystemExit(1)
 
 
