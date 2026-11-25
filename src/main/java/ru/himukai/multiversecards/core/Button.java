@@ -3,7 +3,7 @@ package ru.himukai.multiversecards.core;
 import java.util.Objects;
 
 /**
- * Эквивалентно {@code commandText}
+ * То же значение, что лежит в {@code commandText}
  */
 public record Button(String label, String commandText) {
 
@@ -13,8 +13,8 @@ public record Button(String label, String commandText) {
     }
 
     /**
-     * Текст команды из аргументов.
-     * {@code command("about", "help", "author")} даёт "/help author".
+     * Собирает команду из имени и аргументов
+     * Например, {@code command("about", "help", "author")} даст "/help author"
      */
     public static Button command(String label, String commandName, String... args) {
         StringBuilder text = new StringBuilder("/").append(commandName);

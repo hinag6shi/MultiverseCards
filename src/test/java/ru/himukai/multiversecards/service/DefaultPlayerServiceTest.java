@@ -5,6 +5,8 @@ import ru.himukai.multiversecards.domain.card.CardTemplate;
 import ru.himukai.multiversecards.domain.card.Rarity;
 import ru.himukai.multiversecards.domain.card.Stats;
 import ru.himukai.multiversecards.domain.card.TemplateId;
+import ru.himukai.multiversecards.domain.card.UpgradePayment;
+import ru.himukai.multiversecards.domain.card.UpgradeStat;
 import ru.himukai.multiversecards.domain.player.CardCollection;
 import ru.himukai.multiversecards.domain.player.OwnedCard;
 import ru.himukai.multiversecards.domain.player.Player;
@@ -43,6 +45,42 @@ class DefaultPlayerServiceTest {
             List<OwnedCard> allCards = new ArrayList<>(current.cards().all());
             allCards.addAll(cards);
             data.put(id, new Player(id, current.name(), current.cash(), new CardCollection(allCards), true));
+            return true;
+        }
+
+        @Override
+        public boolean upgradeCard(PlayerId id, TemplateId cardId, UpgradeStat stat, UpgradePayment payment,
+                                   int expectedLevel, int maxLevel, long goldCost, int shardCost) {
+            Player player = data.get(id);
+            if (player == null) return false;
+            OwnedCard card = player.cards().find(cardId).orElse(null);
+            if (card == null || card.upgradeLevel() != expectedLevel || expectedLevel >= maxLevel) return false;
+            if (payment == UpgradePayment.GOLD && player.cash() < goldCost) return false;
+            if (payment == UpgradePayment.SHARDS && card.shards() < shardCost) return false;
+            var old = card.boosts();
+            var boosts = switch (stat) {
+                case HP -> new ru.himukai.multiversecards.domain.card.Boosts(old.hp() + 1, old.st(), old.df());
+                case ST -> new ru.himukai.multiversecards.domain.card.Boosts(old.hp(), old.st() + 1, old.df());
+                case DF -> new ru.himukai.multiversecards.domain.card.Boosts(old.hp(), old.st(), old.df() + 1);
+            };
+            var cards = new CardCollection(player.cards().all());
+            cards.update(new OwnedCard(card.template(), boosts,
+                    payment == UpgradePayment.SHARDS ? card.shards() - shardCost : card.shards(), card.obtainedAt()));
+            data.put(id, new Player(id, player.name(),
+                    payment == UpgradePayment.GOLD ? player.cash() - goldCost : player.cash(), cards,
+                    player.starterSetClaimed()));
+            return true;
+        }
+
+        @Override
+        public boolean convertDuplicateToShards(PlayerId id, TemplateId cardId, int shardAmount) {
+            Player player = data.get(id);
+            if (player == null) return false;
+            OwnedCard card = player.cards().find(cardId).orElse(null);
+            if (card == null) return false;
+            var cards = new CardCollection(player.cards().all());
+            cards.update(card.withShards(Math.addExact(card.shards(), shardAmount)));
+            data.put(id, new Player(id, player.name(), player.cash(), cards, player.starterSetClaimed()));
             return true;
         }
     }

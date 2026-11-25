@@ -28,7 +28,7 @@ public final class CommandRegistry {
         return Optional.ofNullable(commands.get(normalize(name)));
     }
 
-    /** Алфавитный порядок */
+    /** Команды идут по алфавиту */
     public Collection<Command> all() {
         return Collections.unmodifiableCollection(commands.values());
     }

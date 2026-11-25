@@ -41,7 +41,7 @@ class KeyedExecutorTest {
 
     @Test
     void differentKeysRunInParallel() throws InterruptedException {
-        // ключи 0 и 1 при двух полосах попадают в разные полосы
+        // При двух очередях ключи 0 и 1 разъезжаются по разным очередям
         CountDownLatch secondStarted = new CountDownLatch(1);
         CountDownLatch firstSawSecond = new CountDownLatch(1);
 

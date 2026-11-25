@@ -9,7 +9,7 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Objects;
 
-/** Copies the JSON card catalog into PostgreSQL; JSON remains the source of truth. */
+/** При старте копирует шаблоны из JSON в PostgreSQL; главным всё равно остаётся JSON */
 public final class PostgresCardTemplateRepository {
 
     private static final String UPSERT = """

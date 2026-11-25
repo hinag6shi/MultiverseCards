@@ -6,6 +6,7 @@ import ru.himukai.multiversecards.core.Response;
 import ru.himukai.multiversecards.domain.card.CardTemplate;
 import ru.himukai.multiversecards.domain.card.Stats;
 import ru.himukai.multiversecards.domain.card.TemplateId;
+import ru.himukai.multiversecards.domain.card.UpgradeRules;
 import ru.himukai.multiversecards.domain.player.OwnedCard;
 import ru.himukai.multiversecards.domain.player.Player;
 import ru.himukai.multiversecards.domain.player.PlayerId;
@@ -17,9 +18,11 @@ import java.util.Optional;
 public final class CardsCommand implements Command {
 
     private final PlayerService players;
+    private final UpgradeRules upgradeRules;
 
-    public CardsCommand(PlayerService players) {
+    public CardsCommand(PlayerService players, UpgradeRules upgradeRules) {
         this.players = Objects.requireNonNull(players, "players");
+        this.upgradeRules = Objects.requireNonNull(upgradeRules, "upgradeRules");
     }
 
     @Override
@@ -53,10 +56,11 @@ public final class CardsCommand implements Command {
                 return Response.text("Карточка с ID «" + id + "» не найдена в твоей коллекции.");
             }
             CardTemplate card = owned.get().template();
+            Stats stats = upgradeRules.upgraded(card.baseStats(), owned.get().boosts());
             String caption =
-                    "🃏 Name: " + card.name() + "\n🔮 Universe: " + card.universe()
+                    "🃏 Name: " + owned.get().displayName() + "\n🔮 Universe: " + card.universe()
                     + "\n⭐ Rarity: " + card.rarity()
-                    + "\n💠 ID: " + card.id().value() + "\n" + statsLine(card.baseStats());
+                    + "\n💠 ID: " + card.id().value() + "\n" + statsLine(stats);
             return Response.photo(caption, card.imageResource());
         }
         if (player.get().cards().all().isEmpty()) {
@@ -67,8 +71,8 @@ public final class CardsCommand implements Command {
                 .append(player.get().cards().size()).append("):</b>");
         for (OwnedCard owned : player.get().cards().all()) {
             CardTemplate card = owned.template();
-            Stats stats = card.baseStats();
-            text.append("\n• ").append(card.name()).append(" — ").append(card.rarity())
+            Stats stats = upgradeRules.upgraded(card.baseStats(), owned.boosts());
+            text.append("\n• ").append(owned.displayName()).append(" — ").append(card.rarity())
                     .append("\n  ID: <code>").append(card.id().value()).append("</code>")
                     .append("\n").append(statsLine(stats));
         }

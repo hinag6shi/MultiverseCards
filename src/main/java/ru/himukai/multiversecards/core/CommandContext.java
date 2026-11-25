@@ -3,8 +3,8 @@ package ru.himukai.multiversecards.core;
 import java.util.List;
 
 /**
- * @param userId идентификатор пользователя с префиксом платформы, p.s. "tg:12345"
- * @param args   аргументы команды (без имени), неизменяемый список
+ * @param userId ID пользователя с префиксом платформы, например "tg:12345"
+ * @param args   аргументы после имени команды; список нельзя менять
  */
 public record CommandContext(String userId, List<String> args) {
 

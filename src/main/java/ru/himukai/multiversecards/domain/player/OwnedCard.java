@@ -8,9 +8,9 @@ import java.time.Instant;
 import java.util.Objects;
 
 /**
- * Карточка в коллекции игрока: шаблон из общего пула + то, что есть только у этого игрока.
+ * Карточка игрока: общий шаблон плюс его усиления и осколки
  *
- * @param shards осколки этой карточки (даёт повтор, тратятся на её усиления)
+ * @param shards сколько осколков накопилось у карточки — их тратим на апгрейды
  */
 public record OwnedCard(CardTemplate template, Boosts boosts, int shards, Instant obtainedAt) {
 
@@ -24,13 +24,22 @@ public record OwnedCard(CardTemplate template, Boosts boosts, int shards, Instan
         }
     }
 
-    /** Только что полученная карточка: без усилений и осколков. */
+    /** Свежая карточка, пока без усилений и осколков */
     public static OwnedCard fresh(CardTemplate template, Instant obtainedAt) {
         return new OwnedCard(template, Boosts.NONE, 0, obtainedAt);
     }
 
     public TemplateId templateId() {
         return template.id();
+    }
+
+    /** Общий уровень карточки — просто сумма усилений HP, ST и DF */
+    public int upgradeLevel() {
+        return Math.addExact(Math.addExact(boosts.hp(), boosts.st()), boosts.df());
+    }
+
+    public String displayName() {
+        return upgradeLevel() == 0 ? template.name() : template.name() + " +" + upgradeLevel();
     }
 
     public OwnedCard withBoosts(Boosts newBoosts) {
