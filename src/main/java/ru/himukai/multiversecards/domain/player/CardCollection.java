@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-/** Коллекция игрока: не более одной карточки на каждый шаблон, порядок добавления сохраняется. */
+/** В коллекции один экземпляр каждого шаблона, порядок получения сохраняем */
 public final class CardCollection {
     private final Map<TemplateId, OwnedCard> cards = new LinkedHashMap<>();
 
@@ -20,7 +20,7 @@ public final class CardCollection {
         Objects.requireNonNull(cards, "cards").forEach(this::add);
     }
 
-    /** @throws IllegalArgumentException если такая карточка уже есть (повтор обрабатывается снаружи) */
+    /** Если карточка уже есть — отдаём решение вызывающему коду, что делать с повтором */
     public void add(OwnedCard card) {
         Objects.requireNonNull(card, "card");
         if (cards.putIfAbsent(card.templateId(), card) != null) {
@@ -28,7 +28,7 @@ public final class CardCollection {
         }
     }
 
-    /** Заменяет существующую карточку (например, после усиления или начисления осколков). */
+    /** Подменяет карточку обновлённой, например после апгрейда или начисления осколка */
     public void update(OwnedCard card) {
         Objects.requireNonNull(card, "card");
         if (!cards.containsKey(card.templateId())) {

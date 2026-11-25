@@ -13,8 +13,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * /help — список команд с кнопками, /help &lt;команда&gt; — справка по одной команде.
- * Кнопки строятся из реестра, поэтому новые команды появляются в списке сами.
+ * /help показывает команды и кнопки, /help &lt;команда&gt; — подсказку по одной команде
+ * Список собирается из реестра, так что новые команды сами туда попадают
  */
 public final class HelpCommand implements Command {
 
@@ -67,8 +67,7 @@ public final class HelpCommand implements Command {
             text.append('/').append(command.name()).append(" — ").append(command.description()).append('\n');
             buttons.add(Button.command("/" + command.name(), name(), command.name()));
         }
-        // Сообщения отправляются с HTML parse mode: экранируем аргумент в подсказке,
-        // чтобы Telegram не воспринял его как неизвестный HTML-тег.
+        // Telegram ждёт здесь HTML, поэтому экранируем аргумент, чтобы символы не стали тегами
         text.append("\nПодробнее: /help &lt;команда&gt;");
         return Response.update(text.toString(), Keyboard.grid(buttons, BUTTONS_PER_ROW));
     }

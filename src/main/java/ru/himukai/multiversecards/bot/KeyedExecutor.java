@@ -12,9 +12,9 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Несколько однопоточных «полос». Задачи с одним ключом (id игрока) всегда попадают в одну полосу
- * и выполняются строго по очереди, задачи с разными ключами могут выполняться параллельно.
- * Два разных игрока, попавшие в одну полосу, просто ждут друг друга.
+ * Несколько очередей, каждая со своим потоком
+ * Команды одного игрока всегда идут в одну очередь и не обгоняют друг друга
+ * Разные игроки могут обрабатываться параллельно, а если попали в одну очередь — чуть подождут
  */
 public final class KeyedExecutor implements AutoCloseable {
 
@@ -39,7 +39,7 @@ public final class KeyedExecutor implements AutoCloseable {
         this.lanes = List.copyOf(created);
     }
 
-    /** Ставит задачу в очередь полосы этого ключа и сразу возвращает управление. */
+    /** Кладёт задачу в очередь игрока и сразу возвращается */
     public void submit(long key, Runnable task) {
         Objects.requireNonNull(task, "task");
         ExecutorService lane = lanes.get(Math.floorMod(Long.hashCode(key), lanes.size()));
@@ -50,7 +50,7 @@ public final class KeyedExecutor implements AutoCloseable {
         }
     }
 
-    /** Ошибка в одной задаче не должна ронять полосу и обработку остальных игроков. */
+    /** Если одна команда упала, очередь всё равно продолжит разбирать остальные */
     private static void run(long key, Runnable task) {
         try {
             task.run();
@@ -59,7 +59,7 @@ public final class KeyedExecutor implements AutoCloseable {
         }
     }
 
-    /** Дожидается уже принятых задач (до 10 секунд), новые не принимает. */
+    /** Перестаёт принимать задачи и ждёт старые до 10 секунд */
     @Override
     public void close() {
         lanes.forEach(ExecutorService::shutdown);

@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.sql.DataSource;
 
-/** Пул соединений с PostgreSQL + применение миграций (db/migration) при старте. */
+/** Тут пул соединений с PostgreSQL и запуск миграций при старте */
 public final class Database implements AutoCloseable {
 
     private static final Logger log = LoggerFactory.getLogger(Database.class);

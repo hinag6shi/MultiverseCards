@@ -15,13 +15,17 @@ import ru.himukai.multiversecards.commands.CardsCommand;
 import ru.himukai.multiversecards.commands.HelpCommand;
 import ru.himukai.multiversecards.commands.NameCommand;
 import ru.himukai.multiversecards.commands.StartCommand;
+import ru.himukai.multiversecards.commands.UpgradeCommand;
 import ru.himukai.multiversecards.core.CommandDispatcher;
 import ru.himukai.multiversecards.core.CommandRegistry;
+import ru.himukai.multiversecards.domain.card.UpgradeRules;
 import ru.himukai.multiversecards.infra.config.CardJsonLoader;
+import ru.himukai.multiversecards.infra.config.UpgradeBalanceLoader;
 import ru.himukai.multiversecards.infra.db.Database;
 import ru.himukai.multiversecards.infra.db.PostgresCardTemplateRepository;
 import ru.himukai.multiversecards.infra.db.PostgresPlayerRepository;
 import ru.himukai.multiversecards.service.CardCatalog;
+import ru.himukai.multiversecards.service.CardUpgradeService;
 import ru.himukai.multiversecards.service.DefaultCardCatalog;
 import ru.himukai.multiversecards.service.DefaultPlayerService;
 import ru.himukai.multiversecards.service.PlayerService;
@@ -34,14 +38,14 @@ public final class Main {
 
     private static final Logger log = LoggerFactory.getLogger(Main.class);
 
-    /** Сколько игроков обрабатывается одновременно. Пул БД (Database) должен быть не меньше. */
+    /** Сколько игроков бот обрабатывает параллельно; соединений с БД должно хватать на всех */
     private static final int USER_LANES = 8;
 
     private Main() {
     }
 
     public static void main(String[] args) throws Exception {
-        // .env необязателен: без него значения берутся из переменных окружения
+        // .env можно не заводить — тогда берём настройки из переменных окружения
         Dotenv env = Dotenv.configure().ignoreIfMissing().load();
 
         String botToken = env.get("BOT_TOKEN");
@@ -51,19 +55,23 @@ public final class Main {
 
         OkHttpClient httpClient = createHttpClient(env);
 
-        // Порядок закрытия обратный: сначала перестаём получать апдейты, затем доделываем
-        // принятые, и только потом закрываем БД.
+        // Сначала перестаём принимать апдейты, потом разбираем очередь и в конце закрываем БД
         try (Database database = Database.connect(env);
              KeyedExecutor executor = new KeyedExecutor(USER_LANES)) {
 
-            var templates = CardJsonLoader.load(new ObjectMapper());
+            ObjectMapper mapper = new ObjectMapper();
+            var templates = CardJsonLoader.load(mapper);
+            var upgradeBalance = UpgradeBalanceLoader.load(mapper);
+            UpgradeRules upgradeRules = new UpgradeRules(upgradeBalance);
             new PostgresCardTemplateRepository(database.dataSource()).synchronize(templates);
             CardCatalog catalog = new DefaultCardCatalog(templates);
             log.info("Загружено шаблонов карточек: {}", templates.size());
 
-            PlayerService players = new DefaultPlayerService(
-                    new PostgresPlayerRepository(database.dataSource()), catalog);
-            CommandDispatcher dispatcher = new CommandDispatcher(createRegistry(players));
+            var playerRepository = new PostgresPlayerRepository(database.dataSource());
+            PlayerService players = new DefaultPlayerService(playerRepository, catalog);
+            CardUpgradeService cardUpgrades = new CardUpgradeService(playerRepository, upgradeBalance);
+            CommandDispatcher dispatcher = new CommandDispatcher(
+                    createRegistry(players, upgradeRules, cardUpgrades));
             try (TelegramBot bot = new TelegramBot(botToken, dispatcher, httpClient, executor, players)) {
                 try (TelegramBotsLongPollingApplication application =
                              new TelegramBotsLongPollingApplication(ObjectMapper::new, () -> httpClient)) {
@@ -75,14 +83,16 @@ public final class Main {
         }
     }
 
-    private static CommandRegistry createRegistry(PlayerService players) {
+    private static CommandRegistry createRegistry(PlayerService players, UpgradeRules upgradeRules,
+                                                 CardUpgradeService cardUpgrades) {
         CommandRegistry registry = new CommandRegistry();
         return registry.register(
                 new HelpCommand(registry, players),
                 new AuthorCommand(players),
                 new AboutCommand(players),
                 new NameCommand(players),
-                new CardsCommand(players),
+                new CardsCommand(players, upgradeRules),
+                new UpgradeCommand(cardUpgrades),
                 new StartCommand(players)
         );
     }

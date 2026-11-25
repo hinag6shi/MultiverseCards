@@ -1,6 +1,6 @@
 package ru.himukai.multiversecards.domain.card;
 
-/** Сколько раз игрок усилил каждую характеристику конкретной карточки. */
+/** Сколько апгрейдов уже вложено в каждый стат этой карточки */
 public record Boosts(int hp, int st, int df) {
 
     public static final Boosts NONE = new Boosts(0, 0, 0);

@@ -24,7 +24,7 @@ public final class DefaultPlayerService implements PlayerService {
         this.catalog = Objects.requireNonNull(catalog, "catalog");
     }
 
-    /** Создаёт игрока или, если он уже есть, меняет ему имя. Кошелёк и карточки сохраняются. */
+    /** Создаёт игрока или меняет имя старому — кошелёк и карточки остаются на месте */
     @Override
     public Player start(PlayerId id, String name) {
         Player player = repository.find(id).orElse(null);

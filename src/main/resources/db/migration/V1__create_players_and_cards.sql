@@ -4,7 +4,7 @@ CREATE TABLE players (
     cash BIGINT NOT NULL DEFAULT 0 CHECK (cash >= 0)
 );
 
--- Общий пул карточек (каталог). Наполняется из JSON-конфигов при старте бота.
+-- Общий каталог карточек — при старте бот наполняет его из JSON
 CREATE TABLE card_templates (
     id         TEXT    PRIMARY KEY,
     name       TEXT    NOT NULL CHECK (btrim(name) <> ''),
@@ -17,9 +17,9 @@ CREATE TABLE card_templates (
     is_starter BOOLEAN NOT NULL DEFAULT FALSE
 );
 
--- Карточки игрока: ссылка на шаблон из общего пула.
--- Максимум одна копия каждой карточки (составной ключ), повтор превращается в осколки.
--- Итоговые характеристики не хранятся, а считаются: база шаблона x редкость + усиления.
+-- У игрока лежит ссылка на общий шаблон карточки
+-- Повторный экземпляр в коллекцию не кладём, он превращается в осколки
+-- Итоговые статы не храним — считаем из базы карточки и её апгрейдов
 CREATE TABLE player_cards (
     player_id   BIGINT      NOT NULL REFERENCES players (id) ON DELETE CASCADE,
     template_id TEXT        NOT NULL REFERENCES card_templates (id),

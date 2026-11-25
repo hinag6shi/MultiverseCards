@@ -1,0 +1,23 @@
+{
+  "maxUpgradesPerCard": 21,
+  "statIncreasePercent": {
+    "hp": 0.025,
+    "st": 0.035,
+    "df": 0.03
+  },
+  "goldCost": {
+    "base": 100,
+    "linear": 25,
+    "quadratic": 10
+  },
+  "shardCostByRarity": {
+    "COMMON": 20,
+    "UNCOMMON": 17,
+    "RARE": 14,
+    "EPIC": 11,
+    "MYTHIC": 8,
+    "LEGENDARY": 5,
+    "DIVINE": 2
+  },
+  "shardsPerDuplicate": 1
+}

@@ -37,7 +37,7 @@ public final class TelegramBot implements LongPollingSingleThreadUpdateConsumer,
     private static final Logger log = LoggerFactory.getLogger(TelegramBot.class);
 
     private static final String USER_ID_PREFIX = "tg:";
-    /** Лимит callback_data в байтах. */
+    /** Telegram принимает не больше 64 байт в callback_data */
     private static final int MAX_CALLBACK_DATA_BYTES = 64;
     private static final String NOT_MODIFIED = "message is not modified";
     private static final long NAME_WAIT_SECONDS = 30;
@@ -62,9 +62,9 @@ public final class TelegramBot implements LongPollingSingleThreadUpdateConsumer,
     }
 
     /**
-     * Вызывается потоком long polling и только раскладывает апдейты по очередям игроков:
-     * тяжёлая работа (БД, запросы к Telegram) идёт уже в потоке игрока.
-     * Апдейты одного игрока обрабатываются строго по порядку, разных игроков — параллельно.
+     * Long polling приносит сюда апдейты, а мы раскладываем их по очередям игроков
+     * БД и запросы к Telegram уже выполняются внутри очереди
+     * Команды одного игрока идут по порядку, разные игроки могут обрабатываться параллельно
      */
     @Override
     public void consume(Update update) {
@@ -96,7 +96,7 @@ public final class TelegramBot implements LongPollingSingleThreadUpdateConsumer,
     }
 
     /**
-     * @param sourceMessageId сообщение, с кнопки которого пришла команда; {@code null}, если команду набрали вручную
+     * @param sourceMessageId ID сообщения с нажатой кнопкой; null, если команду набрали руками
      */
     private void reply(long chatId, long userId, String text, Integer sourceMessageId) {
         if (isStartCommand(text)) {
@@ -195,7 +195,7 @@ public final class TelegramBot implements LongPollingSingleThreadUpdateConsumer,
         }
     }
 
-    /** @return {@code true}, если сообщение больше не нужно отправлять заново */
+    /** @return true, если повторно отправлять сообщение уже не надо */
     private boolean tryEdit(String chatId, int messageId, String text, InlineKeyboardMarkup markup) {
         try {
             client.execute(EditMessageText.builder()

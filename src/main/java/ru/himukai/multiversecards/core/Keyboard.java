@@ -11,7 +11,7 @@ public record Keyboard(List<List<Button>> rows) {
         rows = rows.stream().map(List::copyOf).toList();
     }
 
-    /** Кнопки по рядам не более {@code perRow} штук в каждом ряде */
+    /** Сколько кнопок кладём в один ряд */
     public static Keyboard grid(List<Button> buttons, int perRow) {
         if (perRow < 1) {
             throw new IllegalArgumentException("perRow должно быть >= 1");

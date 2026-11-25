@@ -5,6 +5,8 @@ import ru.himukai.multiversecards.domain.card.CardTemplate;
 import ru.himukai.multiversecards.domain.card.Rarity;
 import ru.himukai.multiversecards.domain.card.Stats;
 import ru.himukai.multiversecards.domain.card.TemplateId;
+import ru.himukai.multiversecards.domain.card.UpgradePayment;
+import ru.himukai.multiversecards.domain.card.UpgradeStat;
 import ru.himukai.multiversecards.domain.player.CardCollection;
 import ru.himukai.multiversecards.domain.player.OwnedCard;
 import ru.himukai.multiversecards.domain.player.Player;
@@ -47,7 +49,18 @@ public final class PostgresPlayerRepository implements PlayerRepository {
             WHERE id = ? AND starter_set_claimed = FALSE
             """;
 
-    /** Усиления и осколки меняются, поэтому обновляем; дата получения остаётся прежней. */
+    private static final String LOCK_PLAYER = "SELECT cash FROM players WHERE id = ? FOR UPDATE";
+    private static final String LOCK_CARD_BOOSTS = """
+            SELECT hp_boost, st_boost, df_boost, shards
+            FROM player_cards WHERE player_id = ? AND template_id = ? FOR UPDATE
+            """;
+    private static final String DEBIT_GOLD = "UPDATE players SET cash = cash - ? WHERE id = ? AND cash >= ?";
+    private static final String ADD_DUPLICATE_SHARDS = """
+            UPDATE player_cards SET shards = shards + ?
+            WHERE player_id = ? AND template_id = ? AND shards <= ?
+            """;
+
+    /** После апгрейда меняются усиления и осколки, а дата получения остаётся прежней */
     private static final String UPSERT_CARD = """
             INSERT INTO player_cards (player_id, template_id, hp_boost, st_boost, df_boost, shards, obtained_at)
             VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -127,6 +140,125 @@ public final class PostgresPlayerRepository implements PlayerRepository {
             }
         } catch (SQLException e) {
             throw new IllegalStateException("Не удалось выдать стартовый набор игроку " + id.value(), e);
+        }
+    }
+
+    @Override
+    public boolean upgradeCard(PlayerId playerId, TemplateId cardId, UpgradeStat stat, UpgradePayment payment,
+                               int expectedLevel, int maxLevel, long goldCost, int shardCost) {
+        Objects.requireNonNull(playerId, "playerId");
+        Objects.requireNonNull(cardId, "cardId");
+        Objects.requireNonNull(stat, "stat");
+        Objects.requireNonNull(payment, "payment");
+        if (expectedLevel < 0 || maxLevel < 0 || goldCost < 0 || shardCost < 0) {
+            throw new IllegalArgumentException("Уровень и стоимость усиления не могут быть отрицательными");
+        }
+
+        try (Connection conn = dataSource.getConnection()) {
+            conn.setAutoCommit(false);
+            try {
+                long cash;
+                try (PreparedStatement ps = conn.prepareStatement(LOCK_PLAYER)) {
+                    ps.setLong(1, playerId.value());
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (!rs.next()) {
+                            conn.commit();
+                            return false;
+                        }
+                        cash = rs.getLong("cash");
+                    }
+                }
+
+                int hp;
+                int st;
+                int df;
+                int shards;
+                try (PreparedStatement ps = conn.prepareStatement(LOCK_CARD_BOOSTS)) {
+                    ps.setLong(1, playerId.value());
+                    ps.setString(2, cardId.value());
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (!rs.next()) {
+                            conn.commit();
+                            return false;
+                        }
+                        hp = rs.getInt("hp_boost");
+                        st = rs.getInt("st_boost");
+                        df = rs.getInt("df_boost");
+                        shards = rs.getInt("shards");
+                    }
+                }
+                int level = Math.addExact(Math.addExact(hp, st), df);
+                if (level != expectedLevel || level >= maxLevel
+                        || (payment == UpgradePayment.GOLD && cash < goldCost)
+                        || (payment == UpgradePayment.SHARDS && shards < shardCost)) {
+                    conn.commit();
+                    return false;
+                }
+
+                if (payment == UpgradePayment.GOLD) {
+                    try (PreparedStatement ps = conn.prepareStatement(DEBIT_GOLD)) {
+                        ps.setLong(1, goldCost);
+                        ps.setLong(2, playerId.value());
+                        ps.setLong(3, goldCost);
+                        if (ps.executeUpdate() != 1) {
+                            conn.rollback();
+                            return false;
+                        }
+                    }
+                }
+
+                String statColumn = switch (stat) {
+                    case HP -> "hp_boost";
+                    case ST -> "st_boost";
+                    case DF -> "df_boost";
+                };
+                String sql = payment == UpgradePayment.SHARDS
+                        ? "UPDATE player_cards SET " + statColumn + " = " + statColumn
+                            + " + 1, shards = shards - ? WHERE player_id = ? AND template_id = ?"
+                        : "UPDATE player_cards SET " + statColumn + " = " + statColumn
+                            + " + 1 WHERE player_id = ? AND template_id = ?";
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    int parameter = 1;
+                    if (payment == UpgradePayment.SHARDS) {
+                        ps.setInt(parameter++, shardCost);
+                    }
+                    ps.setLong(parameter++, playerId.value());
+                    ps.setString(parameter, cardId.value());
+                    if (ps.executeUpdate() != 1) {
+                        conn.rollback();
+                        return false;
+                    }
+                }
+
+                conn.commit();
+                return true;
+            } catch (SQLException | RuntimeException e) {
+                conn.rollback();
+                throw e;
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("Не удалось усилить карточку " + cardId.value()
+                    + " игрока " + playerId.value(), e);
+        }
+    }
+
+    @Override
+    public boolean convertDuplicateToShards(PlayerId playerId, TemplateId cardId, int shardAmount) {
+        Objects.requireNonNull(playerId, "playerId");
+        Objects.requireNonNull(cardId, "cardId");
+        if (shardAmount < 0) {
+            throw new IllegalArgumentException("Число осколков не может быть отрицательным");
+        }
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement ps = conn.prepareStatement(ADD_DUPLICATE_SHARDS)) {
+            ps.setInt(1, shardAmount);
+            ps.setLong(2, playerId.value());
+            ps.setString(3, cardId.value());
+            ps.setInt(4, Integer.MAX_VALUE - shardAmount);
+            return ps.executeUpdate() == 1;
+        } catch (SQLException e) {
+            throw new IllegalStateException("Не удалось конвертировать дубликат карточки "
+                    + cardId.value() + " в осколки", e);
         }
     }
 

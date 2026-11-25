@@ -3,11 +3,10 @@ package ru.himukai.multiversecards.core;
 import java.util.Objects;
 
 /**
- * @param text       текст сообщения
- * @param keyboard   кнопки под сообщением (может быть {@link Keyboard#NONE})
- * @param renderMode {@link RenderMode#NEW} — отправить новое сообщение;
- *                   {@link RenderMode#UPDATE} — заменить сообщение, с кнопки которого пришла команда
- *                   (если команду набрали вручную, платформа отправит новое сообщение)
+ * @param text       что отправляем игроку
+ * @param keyboard   кнопки снизу; если их нет, будет {@link Keyboard#NONE}
+ * @param renderMode {@link RenderMode#NEW} отправит новое сообщение, {@link RenderMode#UPDATE} попробует обновить старое
+ * @param photoResource картинка карточки, если надо отправить фото
  */
 public record Response(String text, Keyboard keyboard, RenderMode renderMode, String photoResource) {
 

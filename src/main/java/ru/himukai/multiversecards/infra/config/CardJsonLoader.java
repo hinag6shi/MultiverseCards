@@ -23,7 +23,7 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.stream.Stream;
 
-/** Loads universe card files from the classpath's cards/ directory. */
+/** Загружает карточки вселенных из папки cards в ресурсах */
 public final class CardJsonLoader {
 
     private static final String RESOURCE_DIRECTORY = "cards";

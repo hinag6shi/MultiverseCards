@@ -56,7 +56,7 @@ public final class StartCommand implements Command {
         return Response.text("Сначала напиши /start, затем отправь имя в течение 30 секунд! ⏱️");
     }
 
-    /** "tg:12345" -> PlayerId(12345) */
+    /** Превращает ID вроде "tg:12345" в PlayerId(12345) */
     private static PlayerId playerId(String userId) {
         return new PlayerId(Long.parseLong(userId.substring(userId.indexOf(':') + 1)));
     }

@@ -3,9 +3,9 @@ package ru.himukai.multiversecards.domain.card;
 import java.util.Objects;
 
 /**
- * Шаблон карточки из общего каталога.
+ * Общая заготовка карточки из каталога
  *
- * @param starter входит ли карточка в стартовый набор
+ * @param starter попадает ли карточка в стартовый сетик
  */
 public record CardTemplate(
         TemplateId id,
