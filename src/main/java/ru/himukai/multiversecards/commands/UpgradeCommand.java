@@ -32,7 +32,7 @@ public final class UpgradeCommand implements Command {
 
     @Override
     public String usage() {
-        return "/upgrade <id> <hp|st|df> <gold|shards>";
+        return "/upgrade &lt;id&gt; &lt;hp|st|df&gt; &lt;gold|shards&gt;";
     }
 
     @Override

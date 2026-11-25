@@ -23,7 +23,7 @@ public final class NameCommand implements Command {
 
     @Override
     public String usage() {
-        return "/name <новое имя>";
+        return "/name &lt;новое имя&gt;";
     }
 
     @Override

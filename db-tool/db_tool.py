@@ -15,11 +15,23 @@ except ImportError:
     raise SystemExit(1)
 
 
-def load_dotenv():
-    env_file = Path(__file__).resolve().parent.parent / ".env"
-    if not env_file.exists():
+def load_dotenv(env_file=None):
+    configured_path = env_file or os.getenv("DB_ENV_FILE")
+    if configured_path:
+        env_path = Path(configured_path).expanduser()
+        if not env_path.is_absolute():
+            env_path = Path.cwd() / env_path
+        candidates = [env_path]
+    else:
+        script_dir = Path(__file__).resolve().parent
+        candidates = [Path.cwd() / ".env", script_dir / ".env", script_dir.parent / ".env"]
+
+    env_path = next((path for path in candidates if path.is_file()), None)
+    if env_path is None:
+        if configured_path:
+            raise RuntimeError(f"Environment file not found: {configured_path}")
         return
-    for line in env_file.read_text(encoding="utf-8").splitlines():
+    for line in env_path.read_text(encoding="utf-8").splitlines():
         line = line.strip()
         if not line or line.startswith("#") or "=" not in line:
             continue
@@ -27,18 +39,20 @@ def load_dotenv():
         os.environ.setdefault(key.strip(), value.strip().strip("\"'"))
 
 
-def connect():
-    load_dotenv()
-    config = {
-        "host": os.getenv("DB_HOST", "localhost"),
-        "port": os.getenv("DB_PORT", "5432"),
-        "dbname": os.getenv("DB_NAME"),
-        "user": os.getenv("DB_USER"),
-        "password": os.getenv("DB_PASSWORD"),
+def connect(env_file=None):
+    load_dotenv(env_file)
+    variables = {
+        "host": ("PGHOST", "DB_HOST"),
+        "port": ("PGPORT", "DB_PORT"),
+        "dbname": ("PGDATABASE", "DB_NAME"),
+        "user": ("PGUSER", "DB_USER"),
+        "password": ("PGPASSWORD", "DB_PASSWORD"),
     }
-    missing = [key for key in ("dbname", "user", "password") if not config[key]]
-    if missing:
-        raise RuntimeError("Set DB_NAME, DB_USER and DB_PASSWORD in .env or environment variables.")
+    config = {}
+    for argument, names in variables.items():
+        value = next((os.getenv(name) for name in names if os.getenv(name)), None)
+        if value is not None:
+            config[argument] = value
     return psycopg.connect(**config, row_factory=dict_row)
 
 
@@ -145,6 +159,7 @@ def print_rows(rows):
 
 def build_parser():
     parser = argparse.ArgumentParser(description="Browse and edit a PostgreSQL database.")
+    parser.add_argument("--env-file", help="read connection settings from this .env file")
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("tables", help="list tables and views")
 
@@ -237,7 +252,7 @@ def run(conn, args):
 def main():
     args = build_parser().parse_args()
     try:
-        conn = connect()
+        conn = connect(args.env_file)
         try:
             with conn:
                 run(conn, args)

@@ -77,3 +77,5 @@ mvn test
 
 - [План задач проекта](FirstPlanMultiverseCards.md)
 - [Отчёт о выполненной работе](DEVELOPMENTS.md)
+- [Мини-гайд по базе и карточкам](db-tool/USAGE.md)
+- [Общая справка по db-tool](db-tool/README.md)

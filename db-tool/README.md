@@ -1,101 +1,103 @@
 # PostgreSQL DB Tool
 
-Неинтерактивная CLI-утилита для просмотра таблиц и управления строками PostgreSQL. Таблицы и их столбцы утилита получает из подключённой базы — привязки к структуре проекта нет.
+Простая CLI-утилита для просмотра таблиц и изменения строк в PostgreSQL. Она читает схемы и столбцы из подключённой базы, поэтому не привязана к конкретному проекту.
 
-## Установка и подключение
+## Установка
 
-Из папки `db-tool`:
+Нужен Python 3.10+ и пакет Psycopg 3:
 
 ```sh
 python -m pip install -r requirements.txt
-python db_tool.py --help
 ```
 
-Утилита ищет `.env` в корне проекта. Подключение также можно задать переменными окружения, они имеют приоритет:
+## Подключение
+
+Для подключения можно задать стандартные переменные PostgreSQL:
 
 ```text
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=multiversecards
-DB_USER=postgres
-DB_PASSWORD=your-password
+PGHOST=localhost
+PGPORT=5432
+PGDATABASE=my_database
+PGUSER=my_user
+PGPASSWORD=my_password
 ```
 
-Для другой базы укажите её параметры в `.env` или окружении и запустите команду заново.
+Также поддерживаются короткие имена `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`. Если заданы обе группы, приоритет у `PG*`. Все параметры необязательные: если их не задать, Psycopg/libpq возьмёт свои стандартные значения, включая `PGSERVICE` и локальную авторизацию без пароля.
+
+Настройки можно положить в `.env`. Утилита ищет его в текущей папке, рядом с `db_tool.py` и на уровень выше. Путь к конкретному файлу можно передать явно:
+
+```sh
+python db_tool.py --env-file ../.env tables
+```
+
+Переменные окружения имеют приоритет над значениями из `.env`. При работе с другой базой достаточно поменять параметры подключения.
 
 ## Команды
 
-Команды ниже запускаются из папки `db-tool`. Таблицу можно указать как `players` (схема `public`) или полным именем `public.players`.
+Все команды запускаются из папки с `db_tool.py`. Таблицу можно указать коротко — тогда используется схема `public` — или полностью, например `sales.orders`.
 
-### Список таблиц
+### Таблицы и столбцы
 
 ```sh
 python db_tool.py tables
+python db_tool.py describe public.some_table
 ```
 
-### Столбцы таблицы
-
-Показывает имена столбцов, типы, возможность `NULL` и значения по умолчанию:
-
-```sh
-python db_tool.py describe public.players
-```
+`tables` показывает таблицы и представления. `describe` выводит столбцы, их типы, возможность `NULL` и значения по умолчанию.
 
 ### Просмотр строк
 
 ```sh
 # Первые 50 строк
-python db_tool.py show public.players
+python db_tool.py show public.some_table
 
-# До 20 строк
-python db_tool.py show public.players --limit 20
+# Ограничить вывод и пропустить первые строки
+python db_tool.py show public.some_table --limit 20 --offset 40
 
-# Найти игрока по ID
-python db_tool.py show public.players --where id=5400596056
+# Найти запись по точному значению
+python db_tool.py show public.some_table --where id=123
 
-# Несколько условий объединяются через AND
-python db_tool.py show public.players --where name=Agaha --where cash=0
-
-# Пропустить первые 20 строк и вывести следующие 20
-python db_tool.py show public.players --limit 20 --offset 20
+# Несколько условий соединяются через AND
+python db_tool.py show public.some_table --where status=active --where owner_id=123
 ```
 
-### Добавление строки: `insert`
+### Добавить строку
 
-Каждый столбец задаётся отдельным `--set column=value`. Для таблицы `players` можно добавить игрока так:
+Каждый столбец задаётся отдельным `--set column=value`. Столбцы с DEFAULT можно пропустить:
 
 ```sh
-python db_tool.py insert public.players --set id=987654321 --set name=NewPlayer --set cash=0
+python db_tool.py insert public.some_table --set name=Example --set status=active
 ```
 
-Столбцы с настройками по умолчанию можно пропустить. Например, `starter_set_claimed` получит значение по умолчанию `false`. Строки с пробелами заключайте в кавычки:
+Если в значении есть пробелы, заключи весь аргумент в кавычки:
 
 ```sh
-python db_tool.py insert public.players --set id=987654322 --set "name=New Player"
+python db_tool.py insert public.some_table --set "name=Example row"
 ```
 
-### Изменение строки: `update`
-
-`--set` задаёт новые значения, `--where` выбирает строки для изменения:
+### Изменить строку
 
 ```sh
-# Переименовать игрока с указанным ID
-python db_tool.py update public.players --where id=5400596056 --set name=AgahaNew
+python db_tool.py update public.some_table --where id=123 --set status=active
 
-# Изменить несколько столбцов одной строки
-python db_tool.py update public.players --where id=5400596056 --set name=Agaha --set cash=100
+# Изменить несколько столбцов одной или нескольких строк
+python db_tool.py update public.some_table --where status=waiting --set status=ready --set attempts=0
 ```
 
-### Удаление строки: `delete`
+### Удалить строки
 
 ```sh
-python db_tool.py delete public.players --where id=5400596056
+python db_tool.py delete public.some_table --where id=123
 ```
 
-## Формат значений и важное про изменения
+## Значения и изменения
 
-- `--where` и `--set` можно повторять. Несколько условий `--where` объединяются через `AND`.
-- Условия используют точное совпадение: `--where name=Agaha`.
-- Для SQL `NULL` укажите `NULL` без кавычек: `--set name=NULL` или `--where name=NULL`.
-- Условия `--where` обязательны для `update` и `delete`. Проверьте их через `show` перед изменением.
-- Команды `insert`, `update` и `delete` выполняются сразу, без подтверждения. Если условие совпадёт с несколькими строками, изменятся или удалятся все совпавшие строки.
+- `--where` и `--set` можно повторять
+- Условия `--where` ищут точное совпадение; несколько условий объединяются через `AND`
+- Чтобы записать SQL `NULL`, укажи `NULL` без кавычек
+- Для `update` и `delete` нужно указать хотя бы одно условие
+- Перед изменением удобно сначала выполнить такую же команду `show`
+- Изменения применяются сразу. Если условие совпало с несколькими строками, изменятся или удалятся все они
+- Значения передаются в PostgreSQL параметрами, а имена таблиц и столбцов проверяются по схеме базы
+
+Примеры для таблиц Multiverse Cards лежат отдельно в [USAGE.md](USAGE.md).
